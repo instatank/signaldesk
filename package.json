@@ -1,0 +1,25 @@
+{
+  "name": "signaldesk",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Crypto market intelligence: 3 data streams + one AI-written morning briefing",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "node --test tests/*.test.mjs",
+    "verify:sources": "node scripts/verify-sources.mjs"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0",
+    "next": "^15.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "rss-parser": "^3.13.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.0.0",
+    "tailwindcss": "^4.0.0"
+  }
+}

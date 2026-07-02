@@ -1,0 +1,16 @@
+{
+  "feeds": [
+    { "name": "CoinDesk", "url": "https://www.coindesk.com/arc/outboundfeeds/rss/" },
+    { "name": "Cointelegraph", "url": "https://cointelegraph.com/rss" },
+    { "name": "The Block", "url": "https://www.theblock.co/rss.xml" },
+    { "name": "Decrypt", "url": "https://decrypt.co/feed" },
+    { "name": "Bitcoin Magazine", "url": "https://bitcoinmagazine.com/feed" }
+  ],
+  "assets": [
+    { "symbol": "BTC", "binance": "BTCUSDT", "okx": "BTC-USDT-SWAP", "coingecko": "bitcoin" },
+    { "symbol": "ETH", "binance": "ETHUSDT", "okx": "ETH-USDT-SWAP", "coingecko": "ethereum" },
+    { "symbol": "SOL", "binance": "SOLUSDT", "okx": "SOL-USDT-SWAP", "coingecko": "solana" }
+  ],
+  "fearGreedUrl": "https://api.alternative.me/fng/?limit=30",
+  "coingeckoPriceUrl": "https://api.coingecko.com/api/v3/simple/price"
+}
