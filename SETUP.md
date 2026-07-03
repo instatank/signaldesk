@@ -7,6 +7,14 @@ Firestore, deploy to Vercel with your secrets, and test it.
 Keep a notes file open — you'll collect **5 secret values** along the way
 and paste them all into Vercel in step 4.
 
+> **Status: Steps 1–4 are done.** The app is live at
+> **https://signaldesk-tawny.vercel.app**, all 5 env vars are set, and it's
+> git-connected so future pushes to `claude/new-session-8uz6j0` redeploy it
+> automatically. **Step 5 (testing) is the next thing to do.** Steps 1–4
+> below are left in place for reference (re-setup, rotating a secret,
+> onboarding a second machine, etc.) — skip straight to Step 5 unless you
+> need one of those.
+
 ---
 
 ## Step 1 — Create your Telegram bot (~3 min)
@@ -88,6 +96,14 @@ Now deploy:
 5. Click **Deploy**. Wait ~2 minutes for the green confetti.
 6. Note your deployment URL, e.g. `https://signaldesk-xyz.vercel.app`.
 
+   *(Already done for this project — see the status note at the top of
+   this file. If you ever need a second deployment or the Git connection
+   breaks, use this flow: on the project's **Settings → Git** page, click
+   **Connect Git Repository** and pick `instatank/signaldesk` — it will
+   auto-select `claude/new-session-8uz6j0` as the production branch, which
+   is what you want, since that's the only branch and Vercel Cron only
+   runs on production deployments.)*
+
 ### ⚠️ Cron schedules on the free (Hobby) plan
 
 `vercel.json` schedules two cron jobs: ingest every 15 minutes and the
@@ -97,7 +113,7 @@ once per day** (and not at an exact minute). Two options:
 - **Option A (free, recommended to start):** let Vercel handle only the
   daily digest, and use a free external pinger for the 15-minute ingest:
   1. Go to https://cron-job.org and create a free account.
-  2. **Create cronjob** → URL: `https://YOUR-APP.vercel.app/api/ingest`
+  2. **Create cronjob** → URL: `https://signaldesk-tawny.vercel.app/api/ingest`
   3. Schedule: every 15 minutes.
   4. Under **Advanced → Headers**, add header name `Authorization` with
      value `Bearer YOUR-CRON-SECRET` (the word "Bearer", a space, then
@@ -108,8 +124,10 @@ once per day** (and not at an exact minute). Two options:
 
 ## Step 5 — Test it (~5 min)
 
-Replace the URL and secret with yours in the commands below (run in any
-terminal; on Windows use Git Bash or PowerShell's `curl.exe`).
+Your app is at **https://signaldesk-tawny.vercel.app**. Replace
+`YOUR-CRON-SECRET` with the value you saved in step 4 in the commands
+below (run in any terminal; on Windows use Git Bash or PowerShell's
+`curl.exe`).
 
 1. **Verify the data sources are alive** (run from your own computer,
    inside the project folder, after `npm install`):
@@ -121,7 +139,7 @@ terminal; on Windows use Git Bash or PowerShell's `curl.exe`).
 
 2. **Trigger an ingest run:**
    ```
-   curl -H "Authorization: Bearer YOUR-CRON-SECRET" https://YOUR-APP.vercel.app/api/ingest
+   curl -H "Authorization: Bearer YOUR-CRON-SECRET" https://signaldesk-tawny.vercel.app/api/ingest
    ```
    You should get back JSON with `"ok": true`, a count of new headlines,
    and which source (binance/okx) served each coin. Check the Firebase
@@ -130,12 +148,12 @@ terminal; on Windows use Git Bash or PowerShell's `curl.exe`).
 
 3. **Check security** — this must return `{"error":"unauthorized"}`:
    ```
-   curl https://YOUR-APP.vercel.app/api/ingest
+   curl https://signaldesk-tawny.vercel.app/api/ingest
    ```
 
 4. **Trigger your first digest** (do this after at least one ingest run):
    ```
-   curl -H "Authorization: Bearer YOUR-CRON-SECRET" https://YOUR-APP.vercel.app/api/digest
+   curl -H "Authorization: Bearer YOUR-CRON-SECRET" https://signaldesk-tawny.vercel.app/api/digest
    ```
    Within ~30 seconds your Telegram bot should message you the briefing. 🎉
 
