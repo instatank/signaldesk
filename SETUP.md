@@ -104,23 +104,20 @@ Now deploy:
    is what you want, since that's the only branch and Vercel Cron only
    runs on production deployments.)*
 
-### ⚠️ Cron schedules on the free (Hobby) plan
+### Cron schedules — now on Vercel Pro
 
-`vercel.json` schedules two cron jobs: ingest every 15 minutes and the
-digest daily at 07:00 IST. **Vercel's free Hobby plan only runs cron jobs
-once per day** (and not at an exact minute). Two options:
+The owner upgraded to **Vercel Pro**, which runs cron jobs at their exact
+scheduled time with no per-project job-count limit that would block this.
+`vercel.json` schedules three cron jobs, all handled natively by Vercel —
+no external pinger needed:
 
-- **Option A (free, recommended to start):** let Vercel handle only the
-  daily digest, and use a free external pinger for the 15-minute ingest:
-  1. Go to https://cron-job.org and create a free account.
-  2. **Create cronjob** → URL: `https://signaldesk-tawny.vercel.app/api/ingest`
-  3. Schedule: every 15 minutes.
-  4. Under **Advanced → Headers**, add header name `Authorization` with
-     value `Bearer YOUR-CRON-SECRET` (the word "Bearer", a space, then
-     your secret).
-  5. Save. Done — ingest now runs every 15 minutes for free.
-- **Option B ($20/mo):** upgrade Vercel to Pro; both schedules in
-  `vercel.json` then just work with no extra setup.
+- `/api/ingest` — every 15 minutes
+- `/api/digest` — 01:30 UTC (07:00 IST) and 13:30 UTC (19:00 IST)
+
+(On the free Hobby plan, cron jobs only fire once per day and not at an
+exact minute, and are capped at 2 per project — that's why an external
+pinger like cron-job.org was used earlier. If you ever downgrade off Pro,
+you'll need that workaround again for `/api/ingest`.)
 
 ## Step 5 — Test it (~5 min)
 

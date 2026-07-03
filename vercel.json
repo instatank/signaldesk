@@ -2,6 +2,7 @@
   "regions": ["sin1"],
   "crons": [
     { "path": "/api/ingest", "schedule": "*/15 * * * *" },
-    { "path": "/api/digest", "schedule": "30 1 * * *" }
+    { "path": "/api/digest", "schedule": "30 1 * * *" },
+    { "path": "/api/digest", "schedule": "30 13 * * *" }
   ]
 }

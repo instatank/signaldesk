@@ -10,9 +10,10 @@ session reads.
 
 A crypto market intelligence tool for a non-technical solo founder (the
 owner, AA). Three data streams (news RSS, funding/OI, Fear & Greed) plus
-prices, ingested every 15 min, synthesized into one AI-written daily
-briefing pushed to Telegram at 07:00 IST. See `SIGNALDESK_PRD.md` for the
-full why/what; this file is about where the build currently stands.
+prices, ingested every 15 min, synthesized into an AI-written briefing
+pushed to Telegram twice daily (07:00 and 19:00 IST). See
+`SIGNALDESK_PRD.md` for the full why/what; this file is about where the
+build currently stands.
 
 ## Current status: Phase 1 is live in production
 
@@ -29,9 +30,22 @@ full why/what; this file is about where the build currently stands.
   `ANTHROPIC_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`,
   `CRON_SECRET`, `FIREBASE_SERVICE_ACCOUNT`.
 - Cron jobs are wired in `vercel.json` (`/api/ingest` every 15 min,
-  `/api/digest` daily at 01:30 UTC = 07:00 IST) and will run automatically
-  now that this is a Production deployment — Vercel Cron only fires on
-  Production, not Preview.
+  `/api/digest` at 01:30 UTC = 07:00 IST and 13:30 UTC = 19:00 IST) and
+  run automatically since this is a Production deployment — Vercel Cron
+  only fires on Production, not Preview. **The owner is on the Vercel Pro
+  plan** (upgraded to get exact cron timing and more than 2 jobs/project
+  — Hobby caps both), so all scheduling lives in `vercel.json` directly;
+  no external pinger (e.g. cron-job.org) is needed anymore.
+- Each digest run is stored in Firestore's `digests` collection under a
+  per-run doc id (`istSlotId()` in `lib/digest.js`, e.g. `2026-07-03-07`
+  and `2026-07-03-19`) rather than one per day, since digest now runs
+  twice daily — don't revert this to a per-day key or the evening run
+  will overwrite the morning one.
+- `assembleDigestInputs()` still looks back a full 24h for data
+  continuity, but tags each headline `recent: true` (last 12h) or `false`
+  (12-24h old); the Claude system prompt in `lib/claude.js` is told to
+  lead `top_stories` with `recent` headlines so the two daily briefings
+  don't just repeat each other.
 
 **⚠️ Stray resource:** there's a second, empty Vercel project
 `signaldesk-2rsg` (`prj_BamVnIbRrjjAACi76ABlgc1c2LML`) from a duplicate
