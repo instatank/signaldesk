@@ -14,13 +14,18 @@ import {
   istDateString,
 } from '../../../lib/digest.js';
 import sources from '../../../config/sources.json';
+import { withCors } from '../../../lib/cors.js';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
+export async function OPTIONS() {
+  return withCors(new NextResponse(null, { status: 204 }));
+}
+
 export async function GET(request) {
   if (!isAuthorized(request)) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+    return withCors(NextResponse.json({ error: 'unauthorized' }, { status: 401 }));
   }
 
   const now = new Date();
@@ -43,11 +48,20 @@ export async function GET(request) {
     ? buildRawFallbackMessage(inputs, now)
     : formatDigestMessage(digest, now);
 
+  // Telegram failure shouldn't lose the digest — it's stored either way.
+  let telegram = 'sent';
+  try {
+    await sendTelegramMessage(message);
+  } catch (err) {
+    telegram = `failed: ${String(err.message || err)}`;
+  }
+
   await db.collection('digests').doc(istDateString(now)).set({
     generatedAt: now,
     model: degraded ? null : MODEL,
     degraded,
     aiError: degraded ? aiError : null,
+    telegram,
     digest: digest || null,
     message,
     inputsSummary: {
@@ -58,19 +72,11 @@ export async function GET(request) {
     },
   });
 
-  // Telegram failure shouldn't lose the digest — it's already stored.
-  let telegram = 'sent';
-  try {
-    await sendTelegramMessage(message);
-  } catch (err) {
-    telegram = `failed: ${String(err.message || err)}`;
-  }
-
-  return NextResponse.json({
+  return withCors(NextResponse.json({
     ok: true,
     date: istDateString(now),
     degraded,
     aiError: degraded ? aiError : null,
     telegram,
-  });
+  }));
 }

@@ -10,13 +10,18 @@ import { fetchAllDerivatives } from '../../../lib/derivatives.js';
 import { fetchFearGreed } from '../../../lib/fng.js';
 import { fetchPrices } from '../../../lib/prices.js';
 import sources from '../../../config/sources.json';
+import { withCors } from '../../../lib/cors.js';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
+export async function OPTIONS() {
+  return withCors(new NextResponse(null, { status: 204 }));
+}
+
 export async function GET(request) {
   if (!isAuthorized(request)) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+    return withCors(NextResponse.json({ error: 'unauthorized' }, { status: 401 }));
   }
 
   const startedAt = new Date();
@@ -87,7 +92,7 @@ export async function GET(request) {
     errors,
   });
 
-  return NextResponse.json({
+  return withCors(NextResponse.json({
     ok: true,
     ranAt: startedAt.toISOString(),
     headlines: { new: newHeadlines, duplicates: duplicateHeadlines },
@@ -97,5 +102,5 @@ export async function GET(request) {
     fng: fng ? fng.value : null,
     prices: prices ? Object.keys(prices) : null,
     errors,
-  });
+  }));
 }
