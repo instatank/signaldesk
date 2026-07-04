@@ -4,12 +4,18 @@
     { "name": "Cointelegraph", "url": "https://cointelegraph.com/rss" },
     { "name": "The Block", "url": "https://www.theblock.co/rss.xml" },
     { "name": "Decrypt", "url": "https://decrypt.co/feed" },
-    { "name": "Bitcoin Magazine", "url": "https://bitcoinmagazine.com/feed" }
+    { "name": "Bitcoin Magazine", "url": "https://bitcoinmagazine.com/feed" },
+    { "name": "Google News (ZEC)", "url": "https://news.google.com/rss/search?q=Zcash+OR+ZEC+crypto&hl=en-US&gl=US&ceid=US:en" },
+    { "name": "Google News (HYPE)", "url": "https://news.google.com/rss/search?q=Hyperliquid+OR+%22HYPE+token%22&hl=en-US&gl=US&ceid=US:en" },
+    { "name": "Google News (VVV)", "url": "https://news.google.com/rss/search?q=%22Venice+Token%22+OR+%22VVV+crypto%22&hl=en-US&gl=US&ceid=US:en" }
   ],
   "assets": [
     { "symbol": "BTC", "binance": "BTCUSDT", "okx": "BTC-USDT-SWAP", "coingecko": "bitcoin" },
     { "symbol": "ETH", "binance": "ETHUSDT", "okx": "ETH-USDT-SWAP", "coingecko": "ethereum" },
-    { "symbol": "SOL", "binance": "SOLUSDT", "okx": "SOL-USDT-SWAP", "coingecko": "solana" }
+    { "symbol": "SOL", "binance": "SOLUSDT", "okx": "SOL-USDT-SWAP", "coingecko": "solana" },
+    { "symbol": "ZEC", "binance": "ZECUSDT", "okx": "ZEC-USDT-SWAP", "coingecko": "zcash" },
+    { "symbol": "HYPE", "binance": "HYPEUSDT", "okx": "HYPE-USDT-SWAP", "coingecko": "hyperliquid" },
+    { "symbol": "VVV", "binance": "VVVUSDT", "okx": "VVV-USDT-SWAP", "coingecko": "venice-token" }
   ],
   "fearGreedUrl": "https://api.alternative.me/fng/?limit=30",
   "coingeckoPriceUrl": "https://api.coingecko.com/api/v3/simple/price"
