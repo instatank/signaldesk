@@ -65,7 +65,10 @@ bar (he's a visual learner) and the dashboard was built the same day per
 `app/page.js` is now a fully server-rendered instrument panel: pulse hero
 (latest digest + F&G number + price chips, full briefing behind a
 `<details>`), positioning card with diverging funding bars, F&G card with
-30-day sparkline (extreme zones shaded), news feed with freshness dots.
+30-day sparkline (extreme zones shaded), and a news card that leads with
+shape, not text: a "narrative pulse" bar chart (headlines auto-classified
+by coin/theme keywords in `lib/dashboard.js` — counting, never sentiment),
+a 24h news-flow histogram, then compact chip-tagged headlines.
 Zero client JS — all disclosure is native `<details>`; sparkline/bars are
 inline SVG/CSS. ISR `revalidate = 300`. Data shaping lives in
 `lib/dashboard.js` (pure helpers + one Firestore reader, tested in

@@ -2,6 +2,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  classifyHeadline,
+  topicBreakdown,
+  hourlyNewsVolume,
   relativeTime,
   isStale,
   fundingBand,
@@ -100,6 +103,52 @@ test('shapeHeadlines dedupes by normalized title and caps', () => {
   const out = shapeHeadlines(input, 10);
   assert.deepEqual(out.map((h) => h.url), ['a', 'c']);
   assert.equal(shapeHeadlines(input, 1).length, 1);
+});
+
+const ASSETS = [{ symbol: 'BTC' }, { symbol: 'ETH' }, { symbol: 'HYPE' }];
+
+test('classifyHeadline tags coins and themes by word boundary', () => {
+  const c = classifyHeadline('Bitcoin ETF sees record inflow as SEC delays ruling', ASSETS);
+  assert.deepEqual(c.coins, ['BTC']);
+  assert.deepEqual(c.topics, ['regulation', 'etf']);
+  // 'hyped' must not match HYPE; 'Tether' must match stablecoins
+  const d = classifyHeadline('Traders hyped about Tether expansion', ASSETS);
+  assert.deepEqual(d.coins, []);
+  assert.deepEqual(d.topics, ['stablecoins']);
+});
+
+test('topicBreakdown counts, sorts, and flags rising narratives', () => {
+  const mk = (title, hoursAgo) => ({
+    ...classifyHeadline(title, ASSETS),
+    publishedAt: new Date(NOW - hoursAgo * 3600000),
+  });
+  const headlines = [
+    mk('Bitcoin rallies', 1),
+    mk('Bitcoin ETF inflow', 2),
+    mk('Bitcoin miners', 3),
+    mk('Ethereum upgrade', 20),
+  ];
+  const { entries, maxCount } = topicBreakdown(headlines, ASSETS, NOW);
+  assert.equal(entries[0].key, 'BTC');
+  assert.equal(entries[0].count, 3);
+  assert.equal(entries[0].rising, true); // all 3 within last 6h
+  assert.equal(maxCount, 3);
+  const eth = entries.find((e) => e.key === 'ETH');
+  assert.equal(eth.rising, false); // count below the rising threshold
+});
+
+test('hourlyNewsVolume buckets 24h oldest-first', () => {
+  const headlines = [
+    { publishedAt: new Date(NOW - 30 * 60000) }, // last hour → bucket 23
+    { publishedAt: new Date(NOW - 23.5 * 3600000) }, // → bucket 0
+    { publishedAt: new Date(NOW - 30 * 3600000) }, // out of window → dropped
+    { publishedAt: null },
+  ];
+  const buckets = hourlyNewsVolume(headlines, NOW);
+  assert.equal(buckets.length, 24);
+  assert.equal(buckets[23], 1);
+  assert.equal(buckets[0], 1);
+  assert.equal(buckets.reduce((a, b) => a + b, 0), 2);
 });
 
 test('shapeFearGreed reverses history to oldest-first and attaches guidance', () => {

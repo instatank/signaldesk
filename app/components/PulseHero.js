@@ -64,11 +64,18 @@ export default function PulseHero({ briefing, fearGreed, rows, now }) {
                 </h3>
                 <ol className="space-y-3">
                   {digest.top_stories.slice(0, 5).map((s, i) => (
-                    <li key={i}>
-                      <p className="text-zinc-200">
-                        {s.summary} <span className="text-zinc-500">({s.source})</span>
-                      </p>
-                      <p className="mt-0.5 text-zinc-400">↳ {s.why_it_matters}</p>
+                    <li key={i} className="flex gap-3">
+                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-[11px] font-bold tabular-nums text-zinc-400">
+                        {i + 1}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-zinc-200">
+                          {s.summary} <span className="text-zinc-500">({s.source})</span>
+                        </p>
+                        <p className="mt-1 border-l-2 border-sky-500/40 pl-2 text-xs text-zinc-400">
+                          {s.why_it_matters}
+                        </p>
+                      </div>
                     </li>
                   ))}
                 </ol>
