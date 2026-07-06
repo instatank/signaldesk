@@ -55,19 +55,17 @@ referenced anywhere.
 
 ## What's NOT done yet
 
-**Owner action, not code** — SETUP.md Step 5 (verify sources, trigger a
-manual ingest, confirm the `unauthorized` response, trigger the first
-digest and confirm the Telegram message arrives). If the owner reports a
-problem here, it's almost always one of: wrong `CRON_SECRET` header
-format, `FIREBASE_SERVICE_ACCOUNT` pasted incompletely, or the Telegram
-chat never started (see SETUP.md's troubleshooting section — keep it
-current if new failure modes turn up).
+**SETUP.md Step 5 is DONE** (confirmed by owner 2026-07-06): the digest
+arrives on Telegram twice daily and the owner is consuming it. The
+troubleshooting notes in SETUP.md remain relevant for future breakage.
 
-**Phase 2 (dashboard) is explicitly gated** — per the PRD (§3 principle 1
-and §12), do not start building the dashboard until the owner has used the
-Telegram digest daily for 2+ weeks and reports it's earning its place.
-If asked to "add the dashboard" before that, ask whether the 2-week bar
-has been met rather than assuming.
+**Phase 2 (dashboard) gate is LIFTED** — on 2026-07-06 the owner
+explicitly waived the 2-week bar and asked for the dashboard now (he's a
+visual learner; the digest content works but text is a slow way for him
+to absorb it). **The build prompt is `PHASE2_DASHBOARD_PROMPT.md`** —
+execute that file; it carries the full spec, data shapes, and visual
+direction. Do not re-ask about the gate. Digest content/source refinement
+continues in parallel as the owner reports what he wants tuned.
 
 ## Architecture rules (non-negotiable — see original handoff for full
 rationale, condensed here)
