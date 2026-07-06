@@ -59,13 +59,22 @@ referenced anywhere.
 arrives on Telegram twice daily and the owner is consuming it. The
 troubleshooting notes in SETUP.md remain relevant for future breakage.
 
-**Phase 2 (dashboard) gate is LIFTED** — on 2026-07-06 the owner
-explicitly waived the 2-week bar and asked for the dashboard now (he's a
-visual learner; the digest content works but text is a slow way for him
-to absorb it). **The build prompt is `PHASE2_DASHBOARD_PROMPT.md`** —
-execute that file; it carries the full spec, data shapes, and visual
-direction. Do not re-ask about the gate. Digest content/source refinement
-continues in parallel as the owner reports what he wants tuned.
+**Phase 2 (dashboard) SHIPPED 2026-07-06** — the owner waived the 2-week
+bar (he's a visual learner) and the dashboard was built the same day per
+`PHASE2_DASHBOARD_PROMPT.md` (kept in the repo as the design record).
+`app/page.js` is now a fully server-rendered instrument panel: pulse hero
+(latest digest + F&G number + price chips, full briefing behind a
+`<details>`), positioning card with diverging funding bars, F&G card with
+30-day sparkline (extreme zones shaded), news feed with freshness dots.
+Zero client JS — all disclosure is native `<details>`; sparkline/bars are
+inline SVG/CSS. ISR `revalidate = 300`. Data shaping lives in
+`lib/dashboard.js` (pure helpers + one Firestore reader, tested in
+`tests/dashboard.test.mjs`); interpretation text comes from
+`lib/interpret.js` so dashboard and Telegram digest never disagree. The
+page build-degrades cleanly when `FIREBASE_SERVICE_ACCOUNT` is absent.
+Next up (P1, when the owner asks): digest archive page, per-coin funding
+sparklines, macro-event flags. Digest content/source refinement continues
+in parallel as the owner reports what he wants tuned.
 
 ## Architecture rules (non-negotiable — see original handoff for full
 rationale, condensed here)
@@ -96,6 +105,8 @@ rationale, condensed here)
 | `lib/interpret.js` | The PRD §5 interpretation tables (funding labels, OI+price combos, F&G read) |
 | `lib/claude.js` | Anthropic Messages API via plain `fetch`, structured JSON output |
 | `lib/digest.js` | Digest assembly + Telegram HTML formatting + raw fallback |
+| `lib/dashboard.js` | Dashboard data shaping (pure helpers + Firestore reader) |
+| `app/page.js` + `app/components/` | The Phase 2 dashboard (server-only, zero client JS) |
 | `config/sources.json` | RSS feed URLs and asset symbol mappings — edit here, not in code |
 | `tests/pipeline.test.mjs` | Offline tests (mocked fetch) — failover, dead-feed, auth, degraded-digest paths |
 | `scripts/verify-sources.mjs` | Live source health check — run from an environment with real internet |
