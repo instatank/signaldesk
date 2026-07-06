@@ -62,13 +62,31 @@ troubleshooting notes in SETUP.md remain relevant for future breakage.
 **Phase 2 (dashboard) SHIPPED 2026-07-06** — the owner waived the 2-week
 bar (he's a visual learner) and the dashboard was built the same day per
 `PHASE2_DASHBOARD_PROMPT.md` (kept in the repo as the design record).
-`app/page.js` is now a fully server-rendered instrument panel: pulse hero
-(latest digest + F&G number + price chips, full briefing behind a
-`<details>`), positioning card with diverging funding bars, F&G card with
-30-day sparkline (extreme zones shaded), and a news card that leads with
-shape, not text: a "narrative pulse" bar chart (headlines auto-classified
-by coin/theme keywords in `lib/dashboard.js` — counting, never sentiment),
-a 24h news-flow histogram, then compact chip-tagged headlines.
+Same day, per owner feedback ("more clickability, leaner, cleaner — it'll
+get crowded as sources are added"), the page was reorganized around
+**snapshot-first progressive disclosure**; keep this shape as new
+stats/sources land:
+
+- Three disclosure layers everywhere: card header (a native `<summary>`,
+  always visible — click folds the card to one row that still shows its
+  key stat, e.g. "4/6 longs paying", "42 headlines") → visual snapshot
+  (default open) → full text/enumeration behind an inner expand
+  (`Disclose` in `app/components/ui.js`). A new source should be a new
+  collapsible card following the same contract, never more
+  always-visible rows.
+- Pulse hero owns the 10-second read: briefing sentence, the whole Fear
+  & Greed block (big number + classification + 30-day sparkline;
+  guidance text lives in its ⓘ popover — there is NO separate F&G card
+  anymore), and price ticker chips (compact $ + 24h%). Full briefing
+  behind `<details>`.
+- Positioning card does NOT list every coin by default: a band-colored
+  "crowding strip" (one tinted chip per coin) plus only the most crowded
+  coin's diverging bar (`positioningSummary()` in `lib/dashboard.js`);
+  the full per-coin list (price, bar, OI combo) sits behind the expand.
+- News card leads with shape (narrative-pulse bars, 24h flow histogram —
+  counting, never sentiment) and shows 5 headlines; the rest are behind
+  the expand.
+
 Zero client JS — all disclosure is native `<details>`; sparkline/bars are
 inline SVG/CSS. ISR `revalidate = 300`. Data shaping lives in
 `lib/dashboard.js` (pure helpers + one Firestore reader, tested in

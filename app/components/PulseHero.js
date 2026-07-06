@@ -1,14 +1,75 @@
-// The 10-second read: market pulse sentence, F&G number, price chips.
-// The full briefing (stories, positioning, learn-today) sits behind a
-// native <details> so the hero stays glanceable.
+// The 10-second read: market pulse sentence, the Fear & Greed block
+// (number + 30-day sparkline — this IS the sentiment card now), and a
+// price ticker row. The full briefing sits behind a native <details>.
 import { relativeTime } from '../../lib/dashboard.js';
-import { ChangeChip, TONE_TEXT } from './ui.js';
+import { ChangeChip, Disclose, Explainer, Sparkline, TONE_TEXT } from './ui.js';
+
+const FNG_STROKES = {
+  red: '#f87171',
+  amber: '#fbbf24',
+  gray: '#a1a1aa',
+  lime: '#a3e635',
+  green: '#34d399',
+};
+
+const FNG_EXPLAINER = (
+  <>
+    <p className="mb-1 font-medium text-zinc-100">Fear &amp; Greed — the crowd&rsquo;s mood, 0–100</p>
+    <p>
+      Blends volatility, volume, social buzz and dominance into one number. The beginner lesson it
+      teaches: sentiment extremes are contrarian. Historically, extreme fear (&lt;20) marked better
+      buying zones than selling zones, and extreme greed (&gt;80) is when to be careful, not FOMO.
+    </p>
+  </>
+);
+
+// Compact price so six tickers fit one row: $109,432 → $109.4K.
+function compactPrice(price) {
+  const n = Number(price);
+  if (!Number.isFinite(n)) return null;
+  if (n >= 1000) return `$${(n / 1000).toFixed(1)}K`;
+  return `$${n.toLocaleString('en-US', { maximumFractionDigits: n >= 1 ? 2 : 4 })}`;
+}
+
+// Mobile: a slim horizontal row under the pulse sentence. Desktop: the
+// centered block on the hero's right.
+function FearGreedBlock({ fearGreed }) {
+  return (
+    <div className="flex shrink-0 items-center justify-between gap-4 border-t border-zinc-800 pt-3 sm:block sm:border-none sm:pt-0 sm:text-center">
+      <div>
+        <div className={`text-5xl font-bold ${TONE_TEXT[fearGreed.tone]}`}>{fearGreed.value}</div>
+        <div className="mt-0.5 text-xs font-medium text-zinc-300">{fearGreed.classification}</div>
+      </div>
+      <div className="w-32 sm:mt-1.5 sm:w-auto">
+        {fearGreed.history.length >= 2 && (
+          <div className="sm:mx-auto sm:w-28">
+            <Sparkline
+              values={fearGreed.history}
+              stroke={FNG_STROKES[fearGreed.tone]}
+              extremes={{ low: 20, high: 80 }}
+              height={28}
+              className="h-7 w-full"
+              label="Fear and Greed, 30-day trend"
+            />
+          </div>
+        )}
+        <div className="mt-1 flex flex-wrap items-center justify-center gap-1 text-[10px] uppercase tracking-widest text-zinc-500">
+          <span>Fear &amp; Greed · 30d</span>
+          <Explainer label="Fear and Greed index">
+            {FNG_EXPLAINER}
+            <p className="mt-2 border-t border-zinc-700 pt-2 text-zinc-400">{fearGreed.guidance}</p>
+          </Explainer>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function PulseHero({ briefing, fearGreed, rows, now }) {
   const digest = briefing?.digest;
   return (
     <section className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 sm:p-6">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-5">
         <div className="min-w-0 flex-1">
           <div className="mb-1 flex items-center gap-2 text-xs uppercase tracking-widest text-zinc-500">
             <span>Today&rsquo;s briefing</span>
@@ -31,31 +92,27 @@ export default function PulseHero({ briefing, fearGreed, rows, now }) {
             </p>
           )}
         </div>
-        {fearGreed && (
-          <div className="shrink-0 text-center">
-            <div className={`text-4xl font-bold tabular-nums ${TONE_TEXT[fearGreed.tone]}`}>
-              {fearGreed.value}
-            </div>
-            <div className="text-[10px] uppercase tracking-widest text-zinc-500">Fear &amp; Greed</div>
-          </div>
-        )}
+        {fearGreed && <FearGreedBlock fearGreed={fearGreed} />}
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1">
+      <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5">
         {rows.map((r) => (
           <span key={r.symbol} className="flex items-baseline gap-1.5 text-sm">
             <span className="font-medium text-zinc-300">{r.symbol}</span>
+            {r.price != null && (
+              <span className="tabular-nums text-zinc-500">{compactPrice(r.price)}</span>
+            )}
             <ChangeChip pct={r.change24hPct} />
           </span>
         ))}
       </div>
 
       {digest && (
-        <details className="group mt-4 border-t border-zinc-800 pt-3">
-          <summary className="cursor-pointer list-none text-sm text-sky-400 hover:text-sky-300 [&::-webkit-details-marker]:hidden">
-            <span className="group-open:hidden">Read the full briefing ↓</span>
-            <span className="hidden group-open:inline">Collapse briefing ↑</span>
-          </summary>
+        <Disclose
+          label="Read the full briefing"
+          closeLabel="Collapse briefing"
+          className="mt-4 border-t border-zinc-800 pt-3"
+        >
           <div className="mt-4 space-y-5 text-sm leading-relaxed">
             {digest.top_stories?.length > 0 && (
               <div>
@@ -112,7 +169,7 @@ export default function PulseHero({ briefing, fearGreed, rows, now }) {
               </div>
             )}
           </div>
-        </details>
+        </Disclose>
       )}
     </section>
   );

@@ -5,7 +5,6 @@ import sources from '../config/sources.json';
 import { getDashboardData, istDisplayDate, istTimeString } from '../lib/dashboard.js';
 import PulseHero from './components/PulseHero.js';
 import PositioningCard from './components/PositioningCard.js';
-import FearGreedCard from './components/FearGreedCard.js';
 import NewsCard from './components/NewsCard.js';
 
 export const revalidate = 300;
@@ -54,11 +53,8 @@ export default async function Home() {
       ) : (
         <div className="space-y-4">
           <PulseHero briefing={data.briefing} fearGreed={data.fearGreed} rows={data.rows} now={now} />
-          <div className="grid gap-4 lg:grid-cols-2">
-            <div className="space-y-4">
-              <PositioningCard rows={data.rows} />
-              <FearGreedCard fearGreed={data.fearGreed} />
-            </div>
+          <div className="grid items-start gap-4 lg:grid-cols-2">
+            <PositioningCard rows={data.rows} />
             <NewsCard headlines={data.headlines} now={now} />
           </div>
         </div>

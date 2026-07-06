@@ -18,20 +18,56 @@ export const TONE_BG = {
   green: 'bg-emerald-500',
 };
 
-export function Card({ title, children, right = null }) {
+// Tinted chip per tone — the crowding strip's cells. Background carries
+// the band; the symbol text stays readable on it.
+export const TONE_CHIP = {
+  red: 'bg-red-500/15 text-red-300',
+  amber: 'bg-amber-500/15 text-amber-300',
+  gray: 'bg-zinc-800 text-zinc-500',
+  lime: 'bg-lime-500/15 text-lime-300',
+  green: 'bg-emerald-500/15 text-emerald-300',
+};
+
+// Every card is a native <details>: click the header to fold the whole
+// section to one row. `stat` is the snapshot value that keeps
+// communicating while folded — the page scales by adding cards, and the
+// reader scales by collapsing the ones they're done with.
+export function Card({ title, stat = null, children }) {
   return (
-    <section className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 sm:p-5">
-      <div className="mb-3 flex items-center justify-between gap-2">
+    <details open className="group/card rounded-2xl border border-zinc-800 bg-zinc-900">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 sm:p-5 [&::-webkit-details-marker]:hidden">
         <h2 className="text-xs font-semibold uppercase tracking-widest text-zinc-500">{title}</h2>
-        {right}
-      </div>
-      {children}
-    </section>
+        <span className="flex shrink-0 items-center gap-2">
+          {stat && <span className="text-xs tabular-nums text-zinc-400">{stat}</span>}
+          <span
+            aria-hidden="true"
+            className="text-[9px] text-zinc-600 transition-transform group-open/card:rotate-180"
+          >
+            ▼
+          </span>
+        </span>
+      </summary>
+      <div className="px-4 pb-4 sm:px-5 sm:pb-5">{children}</div>
+    </details>
   );
 }
 
 export function Unavailable({ what }) {
   return <p className="py-6 text-center text-sm text-zinc-600">{what} unavailable right now.</p>;
+}
+
+// The second disclosure layer: an inline expand link inside a card body.
+// Named group so it never cross-triggers nested group styles.
+export function Disclose({ label, closeLabel = 'Collapse', className = '', children }) {
+  return (
+    <details className={`group/d ${className}`}>
+      <summary className="cursor-pointer list-none text-sm text-sky-400 hover:text-sky-300 [&::-webkit-details-marker]:hidden">
+        <span className="group-open/d:hidden">{label} ↓</span>
+        <span className="hidden group-open/d:inline">{closeLabel} ↑</span>
+      </summary>
+      {children}
+    </details>
+  );
 }
 
 // Signed, colored 24h percentage chip. Green up, red down, gray flat.
@@ -58,7 +94,7 @@ export function Explainer({ label, children }) {
       >
         i
       </summary>
-      <div className="absolute left-4 right-4 z-10 mt-2 rounded-xl border border-zinc-700 bg-zinc-800 p-3 text-xs leading-relaxed text-zinc-300 shadow-xl sm:left-auto sm:right-auto sm:max-w-sm">
+      <div className="absolute left-4 right-4 z-10 mt-2 rounded-xl border border-zinc-700 bg-zinc-800 p-3 text-left text-xs normal-case leading-relaxed tracking-normal text-zinc-300 shadow-xl sm:left-auto sm:right-auto sm:max-w-sm">
         {children}
       </div>
     </details>
@@ -84,7 +120,15 @@ export function FundingBar({ fundingRate, band, barPct }) {
 }
 
 // Inline-SVG sparkline; optionally shades the F&G extreme zones.
-export function Sparkline({ values, width = 240, height = 48, stroke = '#a1a1aa', extremes = null }) {
+export function Sparkline({
+  values,
+  width = 240,
+  height = 48,
+  stroke = '#a1a1aa',
+  extremes = null,
+  className = 'h-12 w-full',
+  label = '30-day trend',
+}) {
   const points = sparklinePoints(values, width, height);
   if (!points) return null;
   const min = Math.min(...values);
@@ -95,9 +139,9 @@ export function Sparkline({ values, width = 240, height = 48, stroke = '#a1a1aa'
   return (
     <svg
       viewBox={`0 0 ${width} ${height}`}
-      className="h-12 w-full"
+      className={className}
       role="img"
-      aria-label="30-day trend"
+      aria-label={label}
       preserveAspectRatio="none"
     >
       {extremes && max > extremes.high && (

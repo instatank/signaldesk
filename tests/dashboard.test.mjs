@@ -12,6 +12,7 @@ import {
   fngTone,
   sparklinePoints,
   buildAssetRows,
+  positioningSummary,
   shapeHeadlines,
   shapeFearGreed,
 } from '../lib/dashboard.js';
@@ -91,6 +92,37 @@ test('buildAssetRows degrades per-asset when data is missing', () => {
   assert.equal(rows[0].fundingRate, null);
   assert.equal(rows[0].price, null);
   assert.equal(rows[0].barPct, 0);
+});
+
+test('positioningSummary counts payers and picks the most crowded coin', () => {
+  const rows = [
+    { symbol: 'BTC', fundingRate: 0.0006, band: 'red' },
+    { symbol: 'ETH', fundingRate: 0.0002, band: 'amber' },
+    { symbol: 'SOL', fundingRate: 0.00005, band: 'gray' },
+    { symbol: 'ZEC', fundingRate: -0.0008, band: 'green' },
+    { symbol: 'HYPE', fundingRate: null, band: null }, // no data → excluded
+  ];
+  const s = positioningSummary(rows);
+  assert.equal(s.total, 4);
+  assert.equal(s.longsPaying, 3);
+  assert.equal(s.shortsPaying, 1);
+  assert.equal(s.mostCrowded.symbol, 'ZEC'); // |−0.08%| beats |+0.06%|
+});
+
+test('positioningSummary has no most-crowded coin when everything is gray', () => {
+  const rows = [
+    { symbol: 'BTC', fundingRate: 0.00005, band: 'gray' },
+    { symbol: 'ETH', fundingRate: -0.00002, band: 'gray' },
+  ];
+  const s = positioningSummary(rows);
+  assert.equal(s.total, 2);
+  assert.equal(s.mostCrowded, null);
+  assert.deepEqual(positioningSummary([]), {
+    total: 0,
+    longsPaying: 0,
+    shortsPaying: 0,
+    mostCrowded: null,
+  });
 });
 
 test('shapeHeadlines dedupes by normalized title and caps', () => {
