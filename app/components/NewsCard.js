@@ -69,7 +69,7 @@ function NarrativePulse({ entries, maxCount }) {
             <label
               htmlFor={`nf-${e.key}`}
               title={`Show only ${e.label} headlines`}
-              className="nprow flex cursor-pointer items-center gap-2 rounded px-1 -mx-1 py-1 transition-colors hover:bg-zinc-800/40"
+              className="nprow flex cursor-pointer items-center gap-2 rounded px-1 -mx-1 py-1 transition hover:bg-zinc-800/40"
             >
               <span className="w-20 shrink-0 truncate text-right text-[11px] text-zinc-400">
                 {e.label}
@@ -164,11 +164,13 @@ function filterCss(keys) {
   for (const k of keys) {
     // Category state: show all matching headlines, hide the rest.
     rules.push(`#nf-${k}:checked ~ .nb .nh:not(.t-${k}){display:none}`);
-    // Highlight the active bar.
+    // Highlight the active bar…
     rules.push(
       `#nf-${k}:checked ~ .np label[for="nf-${k}"]{background-color:rgb(39 39 42 / .7);box-shadow:inset 0 0 0 1px rgb(63 63 70)}`
     );
     rules.push(`#nf-${k}:checked ~ .np label[for="nf-${k}"] .npbar{opacity:1}`);
+    // …and dim every other bar back so the active one clearly stands out.
+    rules.push(`#nf-${k}:checked ~ .np label:not([for="nf-${k}"]){opacity:.35}`);
     // Swap footer to the clear control and reveal this filter's label.
     rules.push(`#nf-${k}:checked ~ .nfoot .ctl-more{display:none}`);
     rules.push(`#nf-${k}:checked ~ .nfoot .ctl-clear{display:inline-flex}`);
