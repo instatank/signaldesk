@@ -2,10 +2,13 @@
 // Server-rendered only (zero client JS), reads Firestore directly,
 // revalidates every 5 minutes — an honest pace for 15-minute data.
 import sources from '../config/sources.json';
-import { getDashboardData, istDisplayDate, istTimeString } from '../lib/dashboard.js';
+import macroCalendar from '../config/macro-events.json';
+import { getDashboardData } from '../lib/dashboard.js';
+import { upcomingMacroEvents } from '../lib/macro.js';
 import PulseHero from './components/PulseHero.js';
 import PositioningCard from './components/PositioningCard.js';
 import NewsCard from './components/NewsCard.js';
+import SiteHeader from './components/SiteHeader.js';
 
 export const revalidate = 300;
 
@@ -23,25 +26,11 @@ async function loadData(now) {
 export default async function Home() {
   const now = new Date();
   const { data, error } = await loadData(now);
+  const macroEvents = upcomingMacroEvents(macroCalendar.events, now);
 
   return (
     <main className="mx-auto max-w-5xl p-4 sm:p-6">
-      <header className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-xl font-bold tracking-tight">
-          Signal<span className="text-sky-400">Desk</span>
-        </h1>
-        <div className="flex items-center gap-2 text-xs text-zinc-500">
-          <span>{istDisplayDate(now)}</span>
-          {data?.latestTs && (
-            <span className="text-zinc-600">· data as of {istTimeString(data.latestTs)} IST</span>
-          )}
-          {data?.stale && (
-            <span className="rounded-full bg-amber-500/10 px-2 py-0.5 font-medium text-amber-400">
-              data may be stale
-            </span>
-          )}
-        </div>
-      </header>
+      <SiteHeader now={now} latestTs={data?.latestTs} stale={Boolean(data?.stale)} active="/" />
 
       {!data ? (
         <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-8 text-center">
@@ -52,7 +41,13 @@ export default async function Home() {
         </div>
       ) : (
         <div className="space-y-4">
-          <PulseHero briefing={data.briefing} fearGreed={data.fearGreed} rows={data.rows} now={now} />
+          <PulseHero
+            briefing={data.briefing}
+            fearGreed={data.fearGreed}
+            rows={data.rows}
+            macroEvents={macroEvents}
+            now={now}
+          />
           <div className="grid items-start gap-4 lg:grid-cols-2">
             <PositioningCard rows={data.rows} />
             <NewsCard headlines={data.headlines} now={now} />

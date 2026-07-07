@@ -18,5 +18,23 @@
     { "symbol": "VVV", "binance": "VVVUSDT", "okx": "VVV-USDT-SWAP", "coingecko": "venice-token" }
   ],
   "fearGreedUrl": "https://api.alternative.me/fng/?limit=30",
-  "coingeckoPriceUrl": "https://api.coingecko.com/api/v3/simple/price"
+  "coingeckoPriceUrl": "https://api.coingecko.com/api/v3/simple/price",
+  "advanced": {
+    "binanceLongShortUrl": "https://fapi.binance.com/futures/data/globalLongShortAccountRatio",
+    "okxLongShortUrl": "https://www.okx.com/api/v5/rubik/stat/contracts/long-short-account-ratio",
+    "binanceFundingHistoryUrl": "https://fapi.binance.com/fapi/v1/fundingRate",
+    "okxFundingHistoryUrl": "https://www.okx.com/api/v5/public/funding-rate-history",
+    "binanceDepthUrl": "https://api.binance.com/api/v3/depth",
+    "okxBooksUrl": "https://www.okx.com/api/v5/market/books",
+    "deribitBaseUrl": "https://www.deribit.com/api/v2",
+    "optionsCurrencies": ["BTC", "ETH"],
+    "coingeckoGlobalUrl": "https://api.coingecko.com/api/v3/global",
+    "coingeckoMarketsUrl": "https://api.coingecko.com/api/v3/coins/markets",
+    "coingeckoMarketChartBaseUrl": "https://api.coingecko.com/api/v3/coins",
+    "stablecoins": [
+      { "symbol": "USDT", "coingecko": "tether" },
+      { "symbol": "USDC", "coingecko": "usd-coin" },
+      { "symbol": "DAI", "coingecko": "dai" }
+    ]
+  }
 }

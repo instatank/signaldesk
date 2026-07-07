@@ -109,9 +109,45 @@ native radio group + generated CSS); sparkline/bars are inline SVG/CSS. ISR `rev
 `tests/dashboard.test.mjs`); interpretation text comes from
 `lib/interpret.js` so dashboard and Telegram digest never disagree. The
 page build-degrades cleanly when `FIREBASE_SERVICE_ACCOUNT` is absent.
-Next up (P1, when the owner asks): digest archive page, per-coin funding
-sparklines, macro-event flags. Digest content/source refinement continues
-in parallel as the owner reports what he wants tuned.
+
+**P1 + free-tier P2 SHIPPED 2026-07-07** (owner asked for "all pending
+that fall in free tier"; coin list explicitly kept as-is). Three pages
+now — `/` (unchanged 10-second read), `/advance`, `/archive` — linked via
+`app/components/SiteHeader.js`. What landed:
+
+- **P1 items:** digest archive page (`/archive`); 7-day funding
+  sparklines (inside the Positioning card's expand); macro-event flags —
+  a static, owner-editable calendar in `config/macro-events.json` (FOMC
+  dates confirmed from federalreserve.gov; CPI dates after Aug 2026
+  follow the published BLS schedule — re-verify when extending into
+  2027). Events within 7 days go into the digest inputs (prompt says
+  mention, never predict the outcome), the raw fallback message, and
+  chip badges in the `/` hero.
+- **Advance page** (`/advance`, same card contract as `/`): long/short
+  account ratios (Binance `futures/data` primary, OKX rubik fallback),
+  spot order-book ±2% depth imbalance (Binance spot, OKX books
+  fallback), stablecoin supply + BTC dominance (CoinGecko
+  markets/global), Deribit options read (DVOL + put/call OI — BTC/ETH
+  only, the liquid options markets), and a daily 30-day
+  correlation-vs-BTC + realized-vol rollup (CoinGecko market_chart).
+- **Ingest cadence** (all inside `/api/ingest`, stored in the single
+  `advanced/latest` doc, merge-written so a failed section keeps its
+  previous data): long/short + depth + stablecoins every 15 min; options
+  + funding history only on the hourly `:00` run; the rollup re-fetches
+  when its stored copy is >20h old (self-healing if a day's attempt
+  fails). Fetchers + pure math + page shaping live in `lib/advanced.js`;
+  the plain-language reads live in `lib/interpret.js` like everything
+  else. `maxDuration` on ingest went 60→120 because the rollup fetches
+  CoinGecko serially (free-tier rate-limit courtesy).
+- **Deliberately NOT built — no free source exists (don't "solve" with a
+  paid key without the owner's say-so):** liquidations & ETF flows
+  (Coinglass paid; Binance removed its REST liquidation endpoint),
+  exchange netflows (CryptoQuant has no free API), whale alerts (paid).
+  The `/advance` footer lists these so the owner knows it's a choice,
+  not an oversight.
+
+Digest content/source refinement continues in parallel as the owner
+reports what he wants tuned.
 
 ## Architecture rules (non-negotiable — see original handoff for full
 rationale, condensed here)
@@ -136,17 +172,23 @@ rationale, condensed here)
 
 | File | Purpose |
 |---|---|
-| `app/api/ingest/route.js` | 15-min cron: RSS + derivatives + F&G + prices → Firestore |
-| `app/api/digest/route.js` | Daily cron: assemble 24h → Claude → Firestore → Telegram |
+| `app/api/ingest/route.js` | 15-min cron: RSS + derivatives + F&G + prices + advanced sections → Firestore |
+| `app/api/digest/route.js` | Daily cron: assemble 24h (+ macro events) → Claude → Firestore → Telegram |
 | `lib/derivatives.js` | Binance→OKX funding/OI adapter with silent failover |
-| `lib/interpret.js` | The PRD §5 interpretation tables (funding labels, OI+price combos, F&G read) |
+| `lib/advanced.js` | Advance-page data: long/short, depth, stablecoins, options, correlation rollup (fetchers + math + shaping) |
+| `lib/macro.js` | Upcoming-macro-events window over `config/macro-events.json` |
+| `lib/interpret.js` | ALL plain-language reads: PRD §5 tables + the advanced-stat interpretations |
 | `lib/claude.js` | Anthropic Messages API via plain `fetch`, structured JSON output |
 | `lib/digest.js` | Digest assembly + Telegram HTML formatting + raw fallback |
-| `lib/dashboard.js` | Dashboard data shaping (pure helpers + Firestore reader) |
+| `lib/dashboard.js` | Dashboard data shaping (pure helpers + Firestore readers, incl. digest archive) |
 | `app/page.js` + `app/components/` | The Phase 2 dashboard (server-only, zero client JS) |
-| `config/sources.json` | RSS feed URLs and asset symbol mappings — edit here, not in code |
+| `app/advance/page.js` | The Advance page (free-tier P2 stats, same card contract) |
+| `app/archive/page.js` | Digest archive (P1) |
+| `config/sources.json` | RSS feeds, asset mappings, advanced-API endpoints — edit here, not in code |
+| `config/macro-events.json` | FOMC/CPI calendar — owner-editable, needs a yearly refresh |
 | `tests/pipeline.test.mjs` | Offline tests (mocked fetch) — failover, dead-feed, auth, degraded-digest paths |
-| `scripts/verify-sources.mjs` | Live source health check — run from an environment with real internet |
+| `tests/advanced.test.mjs` | Offline tests for the advanced layer: math, shaping, failover, macro window |
+| `scripts/verify-sources.mjs` | Live source health check (now incl. advanced endpoints) — run outside the sandbox |
 
 ## Working in this repo from a sandboxed Claude Code session
 

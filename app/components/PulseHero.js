@@ -1,7 +1,9 @@
 // The 10-second read: market pulse sentence, the Fear & Greed block
-// (number + 30-day sparkline — this IS the sentiment card now), and a
-// price ticker row. The full briefing sits behind a native <details>.
+// (number + 30-day sparkline — this IS the sentiment card now), a price
+// ticker row, and upcoming macro-event chips (FOMC/CPI within a week).
+// The full briefing sits behind a native <details>.
 import { relativeTime } from '../../lib/dashboard.js';
+import { formatEventDates } from '../../lib/macro.js';
 import { ChangeChip, Disclose, Explainer, Sparkline, TONE_TEXT } from './ui.js';
 
 const FNG_STROKES = {
@@ -65,7 +67,7 @@ function FearGreedBlock({ fearGreed }) {
   );
 }
 
-export default function PulseHero({ briefing, fearGreed, rows, now }) {
+export default function PulseHero({ briefing, fearGreed, rows, macroEvents = [], now }) {
   const digest = briefing?.digest;
   return (
     <section className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 sm:p-6">
@@ -106,6 +108,32 @@ export default function PulseHero({ briefing, fearGreed, rows, now }) {
           </span>
         ))}
       </div>
+
+      {macroEvents.length > 0 && (
+        <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs">
+          <span className="text-zinc-600">📅</span>
+          {macroEvents.map((e) => (
+            <span
+              key={`${e.kind}-${e.date}`}
+              title={e.daysAway === 0 ? `${e.name} — today` : `${e.name} — in ${e.daysAway}d`}
+              className={`rounded-full px-2 py-0.5 font-medium ${
+                e.daysAway <= 1 ? 'bg-violet-500/15 text-violet-300' : 'bg-zinc-800 text-zinc-400'
+              }`}
+            >
+              {e.kind === 'fomc' ? 'FOMC' : 'CPI'} {formatEventDates(e)}
+            </span>
+          ))}
+          <Explainer label="macro events">
+            <p className="mb-1 font-medium text-zinc-100">Macro events ahead</p>
+            <p>
+              Scheduled US macro releases within the next week. FOMC (rate decisions) and CPI
+              (inflation prints) are the two events that most reliably move crypto — expect
+              positioning to get cautious into them and volatility around the release. Awareness
+              only: knowing the date is the edge, guessing the outcome is not.
+            </p>
+          </Explainer>
+        </div>
+      )}
 
       {digest && (
         <Disclose

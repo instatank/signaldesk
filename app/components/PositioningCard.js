@@ -16,6 +16,7 @@ import {
   ChangeChip,
   Explainer,
   FundingBar,
+  Sparkline,
   TONE_CHIP,
   TONE_TEXT,
   Unavailable,
@@ -128,6 +129,20 @@ function AssetRow({ r }) {
         )}
         <span>{r.oiCombo || 'OI trend needs 24h of data.'}</span>
       </div>
+      {r.fundingSpark?.length >= 2 && (
+        <div className="mt-2 flex items-center gap-2">
+          <Sparkline
+            values={r.fundingSpark}
+            stroke="#71717a"
+            height={20}
+            className="h-5 w-full max-w-[240px]"
+            label={`${r.symbol} funding rate, 7-day trend`}
+          />
+          <span className="shrink-0 text-[10px] uppercase tracking-widest text-zinc-600">
+            funding · 7d
+          </span>
+        </div>
+      )}
     </li>
   );
 }
