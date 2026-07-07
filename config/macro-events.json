@@ -1,0 +1,15 @@
+{
+  "note": "Owner-editable macro calendar. FOMC dates confirmed from federalreserve.gov. CPI dates through Aug 2026 confirmed from bls.gov; Sep-Dec follow the published BLS schedule — re-verify at bls.gov/schedule/news_release/cpi.htm when extending into 2027.",
+  "events": [
+    { "date": "2026-07-14", "name": "US CPI (June data)", "kind": "cpi" },
+    { "date": "2026-07-28", "endDate": "2026-07-29", "name": "FOMC meeting", "kind": "fomc" },
+    { "date": "2026-08-12", "name": "US CPI (July data)", "kind": "cpi" },
+    { "date": "2026-09-11", "name": "US CPI (August data)", "kind": "cpi" },
+    { "date": "2026-09-15", "endDate": "2026-09-16", "name": "FOMC meeting", "kind": "fomc" },
+    { "date": "2026-10-13", "name": "US CPI (September data)", "kind": "cpi" },
+    { "date": "2026-10-27", "endDate": "2026-10-28", "name": "FOMC meeting", "kind": "fomc" },
+    { "date": "2026-11-10", "name": "US CPI (October data)", "kind": "cpi" },
+    { "date": "2026-12-08", "endDate": "2026-12-09", "name": "FOMC meeting", "kind": "fomc" },
+    { "date": "2026-12-10", "name": "US CPI (November data)", "kind": "cpi" }
+  ]
+}

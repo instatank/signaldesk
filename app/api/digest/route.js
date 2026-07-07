@@ -16,6 +16,7 @@ import {
   istSlotId,
 } from '../../../lib/digest.js';
 import sources from '../../../config/sources.json';
+import macroCalendar from '../../../config/macro-events.json';
 import { withCors } from '../../../lib/cors.js';
 
 export const dynamic = 'force-dynamic';
@@ -32,7 +33,7 @@ export async function GET(request) {
 
   const now = new Date();
   const db = getDb();
-  const inputs = await assembleDigestInputs(db, sources.assets);
+  const inputs = await assembleDigestInputs(db, sources.assets, macroCalendar.events);
 
   // AI is an optional layer: one retry, then fall back to raw data.
   let digest = null;

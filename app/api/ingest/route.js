@@ -9,11 +9,21 @@ import { fetchAllFeeds } from '../../../lib/rss.js';
 import { fetchAllDerivatives } from '../../../lib/derivatives.js';
 import { fetchFearGreed } from '../../../lib/fng.js';
 import { fetchPrices } from '../../../lib/prices.js';
+import {
+  fetchAllLongShort,
+  fetchAllDepth,
+  fetchAllFundingHistory,
+  fetchAllOptions,
+  fetchStablecoinAndGlobal,
+  fetchDailyRollup,
+} from '../../../lib/advanced.js';
 import sources from '../../../config/sources.json';
 import { withCors } from '../../../lib/cors.js';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60;
+// 120s: the daily correlation rollup fetches CoinGecko history serially
+// (rate-limit courtesy), which can stack timeouts on a bad day.
+export const maxDuration = 120;
 
 export async function OPTIONS() {
   return withCors(new NextResponse(null, { status: 204 }));
@@ -92,6 +102,64 @@ export async function GET(request) {
     errors,
   });
 
+  // --- Advanced (free-tier) data → advanced/latest, merge-written so
+  // each section keeps its own cadence. Failures degrade sections, never
+  // the run: on error the previous section simply stays in place.
+  const advCfg = sources.advanced;
+  const advanced = { sections: [], errors: [] };
+  if (advCfg) {
+    const advRef = db.collection('advanced').doc('latest');
+    // Cron fires at :00/:15/:30/:45 — the :00 run is the hourly slot for
+    // slow-moving data (options OI, funding history).
+    const hourlySlot = startedAt.getUTCMinutes() < 15;
+    // The daily rollup (CoinGecko history calls) re-runs once its stored
+    // copy is >20h old — self-healing if a day's attempt failed.
+    let rollupDue = false;
+    try {
+      const prev = await advRef.get();
+      const prevTs = prev.exists ? prev.data()?.rollup?.ts?.toDate?.() : null;
+      rollupDue = !prevTs || startedAt - prevTs > 20 * 60 * 60 * 1000;
+    } catch {
+      rollupDue = true;
+    }
+
+    const jobs = [
+      ['longShort', () => fetchAllLongShort(advCfg, sources.assets)],
+      ['depth', () => fetchAllDepth(advCfg, sources.assets)],
+      ['stables', () => fetchStablecoinAndGlobal(advCfg)],
+    ];
+    if (hourlySlot) {
+      jobs.push(['options', () => fetchAllOptions(advCfg)]);
+      jobs.push(['fundingHistory', () => fetchAllFundingHistory(advCfg, sources.assets)]);
+    }
+    if (rollupDue) jobs.push(['rollup', () => fetchDailyRollup(advCfg, sources.assets)]);
+
+    const settled = await Promise.allSettled(jobs.map(([, run]) => run()));
+    const update = {};
+    settled.forEach((result, i) => {
+      const key = jobs[i][0];
+      if (result.status === 'fulfilled') {
+        const { errors: sectionErrors = [], ...payload } = result.value;
+        advanced.errors.push(...sectionErrors.map((e) => ({ stream: `advanced-${key}`, ...e })));
+        update[key] = { ...payload, ts: startedAt };
+        advanced.sections.push(key);
+      } else {
+        advanced.errors.push({
+          stream: `advanced-${key}`,
+          error: String(result.reason?.message || result.reason),
+        });
+      }
+    });
+    if (Object.keys(update).length) {
+      try {
+        await advRef.set(update, { merge: true });
+      } catch (err) {
+        advanced.errors.push({ stream: 'advanced-write', error: String(err.message || err) });
+      }
+    }
+    errors.push(...advanced.errors);
+  }
+
   return withCors(NextResponse.json({
     ok: true,
     ranAt: startedAt.toISOString(),
@@ -101,6 +169,7 @@ export async function GET(request) {
       : null,
     fng: fng ? fng.value : null,
     prices: prices ? Object.keys(prices) : null,
+    advanced: advanced.sections,
     errors,
   }));
 }

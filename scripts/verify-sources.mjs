@@ -86,5 +86,74 @@ try {
   bad('CoinGecko', err.message);
 }
 
+const adv = sources.advanced;
+if (adv) {
+  console.log('\nAdvanced — long/short & depth (BTC as canary):');
+  const btc = sources.assets.find((a) => a.symbol === 'BTC');
+  try {
+    const json = await (
+      await get(`${adv.binanceLongShortUrl}?symbol=${btc.binance}&period=1h&limit=1`)
+    ).json();
+    ok('Binance long/short', `ratio ${json[0]?.longShortRatio}`);
+  } catch (err) {
+    bad('Binance long/short', `${err.message} (expected from US IPs — OKX covers this)`, false);
+  }
+  try {
+    const json = await (
+      await get(`${adv.okxLongShortUrl}?ccy=BTC&period=1H`)
+    ).json();
+    if (json.code !== '0') throw new Error(`code ${json.code}: ${json.msg}`);
+    ok('OKX long/short', `ratio ${json.data?.[0]?.[1]}`);
+  } catch (err) {
+    bad('OKX long/short', err.message);
+  }
+  try {
+    const json = await (await get(`${adv.okxBooksUrl}?instId=BTC-USDT&sz=5`)).json();
+    if (json.code !== '0') throw new Error(`code ${json.code}: ${json.msg}`);
+    ok('OKX spot book', `best bid ${json.data?.[0]?.bids?.[0]?.[0]}`);
+  } catch (err) {
+    bad('OKX spot book', err.message);
+  }
+
+  console.log('\nAdvanced — Deribit options:');
+  try {
+    const json = await (
+      await get(`${adv.deribitBaseUrl}/public/get_volatility_index_data?currency=BTC&start_timestamp=${Date.now() - 7200000}&end_timestamp=${Date.now()}&resolution=3600`)
+    ).json();
+    const candles = json.result?.data;
+    if (!candles?.length) throw new Error('no DVOL candles');
+    ok('Deribit DVOL', `BTC ${candles[candles.length - 1][4]}`);
+  } catch (err) {
+    bad('Deribit DVOL', err.message);
+  }
+
+  console.log('\nAdvanced — CoinGecko flows & history:');
+  try {
+    const ids = adv.stablecoins.map((s) => s.coingecko).join(',');
+    const json = await (await get(`${adv.coingeckoMarketsUrl}?vs_currency=usd&ids=${ids}`)).json();
+    if (!Array.isArray(json) || !json.length) throw new Error('no markets rows');
+    ok('CoinGecko stablecoins', `${json.length} coins, USDT mcap $${json[0]?.market_cap}`);
+  } catch (err) {
+    bad('CoinGecko stablecoins', err.message);
+  }
+  try {
+    const json = await (await get(adv.coingeckoGlobalUrl)).json();
+    const dom = json.data?.market_cap_percentage?.btc;
+    if (dom == null) throw new Error('no BTC dominance in response');
+    ok('CoinGecko global', `BTC dominance ${dom.toFixed(1)}%`);
+  } catch (err) {
+    bad('CoinGecko global', err.message);
+  }
+  try {
+    const json = await (
+      await get(`${adv.coingeckoMarketChartBaseUrl}/bitcoin/market_chart?vs_currency=usd&days=30&interval=daily`)
+    ).json();
+    if (!json.prices?.length) throw new Error('no price history');
+    ok('CoinGecko market_chart', `${json.prices.length} daily closes`);
+  } catch (err) {
+    bad('CoinGecko market_chart', err.message);
+  }
+}
+
 console.log(failures ? `\n${failures} source(s) FAILED.` : '\nAll critical sources healthy.');
 process.exit(failures ? 1 : 0);
