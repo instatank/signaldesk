@@ -80,9 +80,18 @@ stats/sources land:
   anymore), and price ticker chips (compact $ + 24h%). Full briefing
   behind `<details>`.
 - Positioning card does NOT list every coin by default: a band-colored
-  "crowding strip" (one tinted chip per coin) plus only the most crowded
-  coin's diverging bar (`positioningSummary()` in `lib/dashboard.js`);
-  the full per-coin list (price, bar, OI combo) sits behind the expand.
+  "crowding strip" (one tinted chip per coin) plus a single coin's
+  diverging bar. The strip is a **coin selector** — each pill is a
+  `<label>` for a hidden radio (`name="pf"`); click a pill and the
+  snapshot bar swaps to that coin (default = most crowded,
+  `positioningSummary()` in `lib/dashboard.js`), same generated
+  `:checked ~` CSS pattern as the news filter. The full per-coin list
+  (price, bar, OI combo) sits behind an expand, but there is **no
+  "show more" arrow row** — the snapshot bar itself is the `<summary>` of
+  a native `<details>`, so clicking the snapshot toggles the full table
+  open/closed (small inline chevron is the only affordance). Three
+  independent click targets: card header folds the whole card, snapshot
+  toggles the table, pills pick the coin.
 - News card leads with shape (narrative-pulse bars, 24h flow histogram —
   counting, never sentiment) and shows 5 headlines by default. The
   narrative-pulse bars double as a **filter**: click a bar to narrow the
