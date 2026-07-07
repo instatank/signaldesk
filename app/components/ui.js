@@ -35,19 +35,21 @@ export const TONE_CHIP = {
 export function Card({ title, stat = null, children }) {
   return (
     <details open className="group/card rounded-2xl border border-zinc-800 bg-zinc-900">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 sm:p-5 [&::-webkit-details-marker]:hidden">
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-zinc-500">{title}</h2>
-        <span className="flex shrink-0 items-center gap-2">
+      {/* The header is a tinted "tab" with a chevron chip — a clear signal
+          the whole bar is clickable to fold/unfold the card. */}
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl bg-zinc-800/50 p-4 transition-colors hover:bg-zinc-800/80 group-open/card:rounded-b-none group-open/card:border-b group-open/card:border-zinc-800 sm:p-5 [&::-webkit-details-marker]:hidden">
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-zinc-300">{title}</h2>
+        <span className="flex shrink-0 items-center gap-2.5">
           {stat && <span className="text-xs tabular-nums text-zinc-400">{stat}</span>}
           <span
             aria-hidden="true"
-            className="text-[9px] text-zinc-600 transition-transform group-open/card:rotate-180"
+            className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-700/70 text-[10px] leading-none text-zinc-200 transition-transform group-open/card:rotate-180"
           >
             ▼
           </span>
         </span>
       </summary>
-      <div className="px-4 pb-4 sm:px-5 sm:pb-5">{children}</div>
+      <div className="px-4 pb-4 pt-4 sm:px-5 sm:pb-5 sm:pt-5">{children}</div>
     </details>
   );
 }

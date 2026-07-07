@@ -60,31 +60,43 @@ function NarrativePulse({ entries, maxCount }) {
       <h3 className="mb-2 flex items-baseline justify-between gap-2 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">
         <span>What the market is talking about</span>
         <span className="font-normal normal-case tracking-normal text-zinc-700">
-          tap a bar to filter
+          tap to filter · tap again to clear
         </span>
       </h3>
       <ul className="space-y-0.5">
         {entries.map((e) => (
-          <li key={e.key}>
+          <li
+            key={e.key}
+            className={`nprow nprow-${e.key} relative flex items-center gap-2 rounded px-1 -mx-1 py-1 transition hover:bg-zinc-800/40`}
+          >
+            <span className="w-20 shrink-0 truncate text-right text-[11px] text-zinc-400">
+              {e.label}
+            </span>
+            <div className="h-3 flex-1 overflow-hidden rounded-sm bg-zinc-800/60">
+              <div
+                className={`npbar h-full rounded-sm ${(TAG_STYLE[e.key] || FALLBACK_STYLE).bar}`}
+                style={{ width: `${Math.max(6, Math.round((e.count / maxCount) * 100))}%`, opacity: 0.75 }}
+              />
+            </div>
+            <span className="w-10 shrink-0 text-[11px] tabular-nums text-zinc-500">
+              {e.count}
+              {e.rising && <span className="ml-0.5 text-sky-400" title="most coverage in the last 6h">▲</span>}
+            </span>
+            {/* Two stacked full-row labels. "select" is live by default; once
+                this bar is the active filter the generated CSS swaps in the
+                "clear" layer, so a second tap on the same bar toggles it off. */}
             <label
               htmlFor={`nf-${e.key}`}
+              aria-label={`Show only ${e.label} headlines`}
               title={`Show only ${e.label} headlines`}
-              className="nprow flex cursor-pointer items-center gap-2 rounded px-1 -mx-1 py-1 transition hover:bg-zinc-800/40"
-            >
-              <span className="w-20 shrink-0 truncate text-right text-[11px] text-zinc-400">
-                {e.label}
-              </span>
-              <div className="h-3 flex-1 overflow-hidden rounded-sm bg-zinc-800/60">
-                <div
-                  className={`npbar h-full rounded-sm ${(TAG_STYLE[e.key] || FALLBACK_STYLE).bar}`}
-                  style={{ width: `${Math.max(6, Math.round((e.count / maxCount) * 100))}%`, opacity: 0.75 }}
-                />
-              </div>
-              <span className="w-10 shrink-0 text-[11px] tabular-nums text-zinc-500">
-                {e.count}
-                {e.rising && <span className="ml-0.5 text-sky-400" title="most coverage in the last 6h">▲</span>}
-              </span>
-            </label>
+              className={`npsel npsel-${e.key} absolute inset-0 cursor-pointer`}
+            />
+            <label
+              htmlFor="nf-all"
+              aria-label={`Clear ${e.label} filter`}
+              title="Clear filter"
+              className={`npdesel npdesel-${e.key} absolute inset-0 cursor-pointer`}
+            />
           </li>
         ))}
       </ul>
@@ -160,17 +172,23 @@ function filterCss(keys) {
     // "Everything" state: show all, swap the footer toggle.
     `#nf-every:checked ~ .nfoot .ctl-more{display:none}`,
     `#nf-every:checked ~ .nfoot .ctl-less{display:inline-flex}`,
+    // Deselect layer is dormant until its bar becomes the active filter.
+    `.np .npdesel{display:none}`,
   ];
   for (const k of keys) {
     // Category state: show all matching headlines, hide the rest.
     rules.push(`#nf-${k}:checked ~ .nb .nh:not(.t-${k}){display:none}`);
     // Highlight the active bar…
     rules.push(
-      `#nf-${k}:checked ~ .np label[for="nf-${k}"]{background-color:rgb(39 39 42 / .7);box-shadow:inset 0 0 0 1px rgb(63 63 70)}`
+      `#nf-${k}:checked ~ .np .nprow-${k}{background-color:rgb(39 39 42 / .7);box-shadow:inset 0 0 0 1px rgb(63 63 70)}`
     );
-    rules.push(`#nf-${k}:checked ~ .np label[for="nf-${k}"] .npbar{opacity:1}`);
+    rules.push(`#nf-${k}:checked ~ .np .nprow-${k} .npbar{opacity:1}`);
     // …and dim every other bar back so the active one clearly stands out.
-    rules.push(`#nf-${k}:checked ~ .np label:not([for="nf-${k}"]){opacity:.35}`);
+    rules.push(`#nf-${k}:checked ~ .np .nprow:not(.nprow-${k}){opacity:.35}`);
+    // Toggle-off: once active, the "clear" overlay takes over this bar's
+    // clicks (points at nf-all), so tapping it again removes the filter.
+    rules.push(`#nf-${k}:checked ~ .np .npsel-${k}{pointer-events:none}`);
+    rules.push(`#nf-${k}:checked ~ .np .npdesel-${k}{display:block}`);
     // Swap footer to the clear control and reveal this filter's label.
     rules.push(`#nf-${k}:checked ~ .nfoot .ctl-more{display:none}`);
     rules.push(`#nf-${k}:checked ~ .nfoot .ctl-clear{display:inline-flex}`);
