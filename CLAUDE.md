@@ -84,11 +84,18 @@ stats/sources land:
   coin's diverging bar (`positioningSummary()` in `lib/dashboard.js`);
   the full per-coin list (price, bar, OI combo) sits behind the expand.
 - News card leads with shape (narrative-pulse bars, 24h flow histogram —
-  counting, never sentiment) and shows 5 headlines; the rest are behind
-  the expand.
+  counting, never sentiment) and shows 5 headlines by default. The
+  narrative-pulse bars double as a **filter**: click a bar to narrow the
+  list to just that coin/theme (all matches, not only the top 5), with an
+  active-bar highlight and a "✕ clear" control; a "All N headlines" toggle
+  still reveals the full unfiltered list. It's a native radio group
+  (`name="nf"`, one hidden `<input>` per bar + "all"/"every" defaults)
+  driven by a generated `:checked ~` stylesheet in `NewsCard.js` — still
+  zero client JS. Each headline `<li>` carries a `t-<tag>` class per
+  coin/theme so the CSS can hide/show it precisely.
 
-Zero client JS — all disclosure is native `<details>`; sparkline/bars are
-inline SVG/CSS. ISR `revalidate = 300`. Data shaping lives in
+Zero client JS — all disclosure is native `<details>` (news filter is a
+native radio group + generated CSS); sparkline/bars are inline SVG/CSS. ISR `revalidate = 300`. Data shaping lives in
 `lib/dashboard.js` (pure helpers + one Firestore reader, tested in
 `tests/dashboard.test.mjs`); interpretation text comes from
 `lib/interpret.js` so dashboard and Telegram digest never disagree. The

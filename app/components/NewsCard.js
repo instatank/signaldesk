@@ -2,8 +2,14 @@
 // 1. Narrative pulse — what the market is talking about (topic bars)
 // 2. News flow — 24h volume histogram (quiet vs erupting)
 // 3. The headlines themselves — compact, chip-tagged, scannable by color
+//
+// The narrative-pulse bars double as a filter: click a bar to narrow the
+// headline list to just that coin/theme. This stays true to the "zero
+// client JS" rule — it's a native radio group (one hidden <input> per bar
+// plus an "all" default) driven entirely by a generated `:checked ~`
+// stylesheet. No hydration, no event handlers, works with JS disabled.
 import { hourlyNewsVolume, relativeTime, topicBreakdown } from '../../lib/dashboard.js';
-import { Card, Disclose, Unavailable } from './ui.js';
+import { Card, Unavailable } from './ui.js';
 
 const VISIBLE = 5;
 const FRESH_MS = 2 * 60 * 60 * 1000;
@@ -45,31 +51,40 @@ function Chip({ tag }) {
   );
 }
 
-// Layer 1: horizontal bars — the day's narrative mix at a glance.
-function NarrativePulse({ headlines, now }) {
-  const { entries, maxCount } = topicBreakdown(headlines, [], now);
-  if (!entries.length) return null;
+// Layer 1: horizontal bars — the day's narrative mix at a glance. Each row
+// is a <label> tied to its filter radio, so clicking a bar filters the
+// list below. `entries`/`maxCount` come from the parent (computed once).
+function NarrativePulse({ entries, maxCount }) {
   return (
-    <div className="mb-4">
-      <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">
-        What the market is talking about
+    <div className="np mb-4">
+      <h3 className="mb-2 flex items-baseline justify-between gap-2 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">
+        <span>What the market is talking about</span>
+        <span className="font-normal normal-case tracking-normal text-zinc-700">
+          tap a bar to filter
+        </span>
       </h3>
-      <ul className="space-y-1.5">
+      <ul className="space-y-0.5">
         {entries.map((e) => (
-          <li key={e.key} className="flex items-center gap-2">
-            <span className="w-20 shrink-0 truncate text-right text-[11px] text-zinc-400">
-              {e.label}
-            </span>
-            <div className="h-3 flex-1 overflow-hidden rounded-sm bg-zinc-800/60">
-              <div
-                className={`h-full rounded-sm ${(TAG_STYLE[e.key] || FALLBACK_STYLE).bar}`}
-                style={{ width: `${Math.max(6, Math.round((e.count / maxCount) * 100))}%`, opacity: 0.75 }}
-              />
-            </div>
-            <span className="w-10 shrink-0 text-[11px] tabular-nums text-zinc-500">
-              {e.count}
-              {e.rising && <span className="ml-0.5 text-sky-400" title="most coverage in the last 6h">▲</span>}
-            </span>
+          <li key={e.key}>
+            <label
+              htmlFor={`nf-${e.key}`}
+              title={`Show only ${e.label} headlines`}
+              className="nprow flex cursor-pointer items-center gap-2 rounded px-1 -mx-1 py-1 transition-colors hover:bg-zinc-800/40"
+            >
+              <span className="w-20 shrink-0 truncate text-right text-[11px] text-zinc-400">
+                {e.label}
+              </span>
+              <div className="h-3 flex-1 overflow-hidden rounded-sm bg-zinc-800/60">
+                <div
+                  className={`npbar h-full rounded-sm ${(TAG_STYLE[e.key] || FALLBACK_STYLE).bar}`}
+                  style={{ width: `${Math.max(6, Math.round((e.count / maxCount) * 100))}%`, opacity: 0.75 }}
+                />
+              </div>
+              <span className="w-10 shrink-0 text-[11px] tabular-nums text-zinc-500">
+                {e.count}
+                {e.rising && <span className="ml-0.5 text-sky-400" title="most coverage in the last 6h">▲</span>}
+              </span>
+            </label>
           </li>
         ))}
       </ul>
@@ -102,13 +117,17 @@ function NewsFlow({ headlines, now }) {
   );
 }
 
-// Layer 3: the headlines — demoted to compact, chip-led rows.
+// Layer 3: the headlines — demoted to compact, chip-led rows. The <li>
+// carries a `t-<tag>` class for every coin/theme it matches (not just the
+// three shown chips) so the CSS filter can hide/show it precisely.
 function Headline({ h, now }) {
   const when = h.publishedAt || h.ingestedAt;
   const fresh = when && now - when < FRESH_MS;
-  const tags = [...(h.coins || []), ...(h.topics || [])].slice(0, 3);
+  const allTags = [...(h.coins || []), ...(h.topics || [])];
+  const tags = allTags.slice(0, 3);
+  const tagClasses = allTags.map((t) => `t-${t}`).join(' ');
   return (
-    <li className="py-2 first:pt-0 last:pb-0">
+    <li className={`nh py-2 first:pt-0 last:pb-0 ${tagClasses}`}>
       <a href={h.url} target="_blank" rel="noopener noreferrer" className="group block">
         <div className="mb-1 flex items-center gap-1.5">
           {fresh && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-sky-400" />}
@@ -128,36 +147,96 @@ function Headline({ h, now }) {
   );
 }
 
+// Build the generated stylesheet that wires the radio group to the list.
+// One block per filter key plus the "all"/"every" defaults. All selectors
+// hang off `#nf-*:checked ~ …`, so the radios must be siblings of `.np`,
+// `.nb`, and `.nfoot` inside the filter container.
+function filterCss(keys) {
+  const rules = [
+    // Default view ("all"): only the first VISIBLE headlines.
+    `#nf-all:checked ~ .nb .nh:nth-child(n+${VISIBLE + 1}){display:none}`,
+    // Footer controls hidden until their state is active.
+    `.nfoot .ctl-clear,.nfoot .ctl-less,.nfoot .fi{display:none}`,
+    // "Everything" state: show all, swap the footer toggle.
+    `#nf-every:checked ~ .nfoot .ctl-more{display:none}`,
+    `#nf-every:checked ~ .nfoot .ctl-less{display:inline-flex}`,
+  ];
+  for (const k of keys) {
+    // Category state: show all matching headlines, hide the rest.
+    rules.push(`#nf-${k}:checked ~ .nb .nh:not(.t-${k}){display:none}`);
+    // Highlight the active bar.
+    rules.push(
+      `#nf-${k}:checked ~ .np label[for="nf-${k}"]{background-color:rgb(39 39 42 / .7);box-shadow:inset 0 0 0 1px rgb(63 63 70)}`
+    );
+    rules.push(`#nf-${k}:checked ~ .np label[for="nf-${k}"] .npbar{opacity:1}`);
+    // Swap footer to the clear control and reveal this filter's label.
+    rules.push(`#nf-${k}:checked ~ .nfoot .ctl-more{display:none}`);
+    rules.push(`#nf-${k}:checked ~ .nfoot .ctl-clear{display:inline-flex}`);
+    rules.push(`#nf-${k}:checked ~ .nfoot .fi-${k}{display:inline}`);
+  }
+  return rules.join('\n');
+}
+
 export default function NewsCard({ headlines, now }) {
-  const head = headlines.slice(0, VISIBLE);
-  const rest = headlines.slice(VISIBLE);
+  const { entries, maxCount } = topicBreakdown(headlines, [], now);
+  const keys = entries.map((e) => e.key);
+  const canFilter = keys.length > 0 && headlines.length > 0;
+
   return (
     <Card title="News — last 24h" stat={headlines.length > 0 ? `${headlines.length} headlines` : null}>
       {headlines.length === 0 ? (
         <Unavailable what="News feed" />
-      ) : (
+      ) : !canFilter ? (
+        // No classifiable narratives to filter on — plain list, no controls.
         <>
-          <NarrativePulse headlines={headlines} now={now} />
           <NewsFlow headlines={headlines} now={now} />
           <ul className="divide-y divide-zinc-800/70 border-t border-zinc-800 pt-1">
-            {head.map((h) => (
+            {headlines.map((h) => (
               <Headline key={h.url || h.title} h={h} now={now} />
             ))}
           </ul>
-          {rest.length > 0 && (
-            <Disclose
-              label={`All ${headlines.length} headlines`}
-              closeLabel="Show fewer"
-              className="mt-2 border-t border-zinc-800 pt-2"
-            >
-              <ul className="mt-2 divide-y divide-zinc-800/70">
-                {rest.map((h) => (
-                  <Headline key={h.url || h.title} h={h} now={now} />
-                ))}
-              </ul>
-            </Disclose>
-          )}
         </>
+      ) : (
+        <div className="relative">
+          {/* Hidden radio group. sr-only (not `hidden`) keeps them keyboard-
+              reachable while the labels do the visible work. */}
+          <input type="radio" name="nf" id="nf-all" defaultChecked className="peer sr-only" aria-label="Show recent headlines" />
+          <input type="radio" name="nf" id="nf-every" className="sr-only" aria-label="Show all headlines" />
+          {keys.map((k) => (
+            <input key={k} type="radio" name="nf" id={`nf-${k}`} className="sr-only" aria-label={`Filter headlines by ${k}`} />
+          ))}
+
+          <NarrativePulse entries={entries} maxCount={maxCount} />
+          <NewsFlow headlines={headlines} now={now} />
+
+          <ul className="nb divide-y divide-zinc-800/70 border-t border-zinc-800 pt-1">
+            {headlines.map((h) => (
+              <Headline key={h.url || h.title} h={h} now={now} />
+            ))}
+          </ul>
+
+          <div className="nfoot mt-2 flex items-center gap-3 border-t border-zinc-800 pt-2 text-sm">
+            {headlines.length > VISIBLE && (
+              <label htmlFor="nf-every" className="ctl-more cursor-pointer text-sky-400 hover:text-sky-300">
+                All {headlines.length} headlines ↓
+              </label>
+            )}
+            <label htmlFor="nf-all" className="ctl-less cursor-pointer text-sky-400 hover:text-sky-300">
+              Show fewer ↑
+            </label>
+            <label htmlFor="nf-all" className="ctl-clear cursor-pointer items-center gap-1.5 text-zinc-400 hover:text-zinc-200">
+              <span className="text-zinc-500">Showing</span>
+              {entries.map((e) => (
+                <span key={e.key} className={`fi fi-${e.key} font-medium text-zinc-200`}>
+                  {e.label}
+                </span>
+              ))}
+              <span className="text-xs text-sky-400">✕ clear</span>
+            </label>
+          </div>
+
+          <style dangerouslySetInnerHTML={{ __html: filterCss(keys) }} />
+        </div>
       )}
     </Card>
   );
