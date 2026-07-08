@@ -146,6 +146,36 @@ now — `/` (unchanged 10-second read), `/advance`, `/archive` — linked via
   The `/advance` footer lists these so the owner knows it's a choice,
   not an oversight.
 
+**Flash briefing SHIPPED 2026-07-08** (owner wanted to trigger a fresh,
+real-time read from the UI when a major event hits — e.g. a war/hack — to
+gauge how the market is reacting *now*). Key decision: recency is a **dial
+on the existing pipeline, not a second system.** `assembleDigestInputs()`
+took `windowHours`/`recentHours`/`mode` opts (defaults `24`/`12`/
+`'scheduled'` reproduce the twice-daily digest byte-for-byte). A flash run
+passes `{windowHours:12, recentHours:4, mode:'flash'}`; `lib/claude.js`
+appends a "flash addendum" to the system prompt only when
+`inputs.mode==='flash'`, re-framing the *same* briefing as a present-tense,
+last-4h reaction read (standing no-predictions rules intact). What landed:
+
+- New page `/flash` (4th nav tab), same card/zero-JS contract. The trigger
+  is a plain `<form method="post" action="/api/flash">` → 303 redirect back
+  to the page. During cooldown the button is **server-rendered disabled**
+  with a static "available in ~Xm" (reload to refresh — no ticking JS).
+  Page is `dynamic='force-dynamic'` (on-demand, never cached).
+- `/api/flash` is **PUBLIC** (a browser form can't hold `CRON_SECRET`) —
+  abuse is bounded by a **10-min cooldown claimed in a Firestore
+  transaction** (`acquireFlashSlot`) *before* any Claude call. If you ever
+  add auth here, keep the cooldown too. This is the one endpoint not gated
+  by `lib/auth.js`, by design.
+- A **lean ingest** (`leanIngest` in `lib/flash.js`): only RSS + prices +
+  F&G + funding/OI, never the slow advanced/options/rollup — seconds, not
+  the 2-min cron. It writes the same `headlines`/`metrics` collections, so
+  a flash also warms the dashboard and the next scheduled digest.
+- Flash differs from the scheduled digest in two deliberate ways: **one**
+  Claude attempt then raw-data fallback (a flash is time-sensitive; a 2nd
+  60s retry is worse UX), and **no Telegram push** (owner is at the screen).
+  Result stored in `flash/latest`. To flip either default, edit `runFlash`.
+
 Digest content/source refinement continues in parallel as the owner
 reports what he wants tuned.
 
@@ -174,6 +204,9 @@ rationale, condensed here)
 |---|---|
 | `app/api/ingest/route.js` | 15-min cron: RSS + derivatives + F&G + prices + advanced sections → Firestore |
 | `app/api/digest/route.js` | Daily cron: assemble 24h (+ macro events) → Claude → Firestore → Telegram |
+| `app/api/flash/route.js` | On-demand: cooldown-gated PUBLIC endpoint → lean ingest + 4h flash digest → `flash/latest` |
+| `lib/flash.js` | Flash: cooldown math, lean ingest, `runFlash` orchestrator, `flash/latest` reader |
+| `app/flash/page.js` | The Flash page (button + last real-time reaction read) |
 | `lib/derivatives.js` | Binance→OKX funding/OI adapter with silent failover |
 | `lib/advanced.js` | Advance-page data: long/short, depth, stablecoins, options, correlation rollup (fetchers + math + shaping) |
 | `lib/macro.js` | Upcoming-macro-events window over `config/macro-events.json` |

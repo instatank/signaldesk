@@ -5,6 +5,7 @@ import { istDisplayDate, istTimeString } from '../../lib/dashboard.js';
 const PAGES = [
   { href: '/', label: 'Dashboard' },
   { href: '/advance', label: 'Advance' },
+  { href: '/flash', label: 'Flash' },
   { href: '/archive', label: 'Archive' },
 ];
 
