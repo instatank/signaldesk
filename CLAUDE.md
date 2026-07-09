@@ -213,6 +213,36 @@ pure Binance-futures data + arithmetic. What landed:
   so Binance is reachable. Sandbox can't hit Binance, so live data only
   appears after deploy (hit Refresh, or wait for the cron).
 
+**Daylight mode SHIPPED 2026-07-09** (owner wanted to flip between a light
+and dark screen — "light sometimes, dark sometimes"). Key decision:
+**re-theme via CSS variables, not per-component rewrites.** Tailwind v4
+compiles every color utility to a `var(--color-*)` reference (e.g.
+`bg-zinc-900` → `background-color:var(--color-zinc-900)`), so the whole app
+re-themes by re-pointing those variables under `[data-theme="light"]` in
+`app/globals.css` — no `dark:` variants, no touching the ~334 utility
+usages. The zinc ramp is used semantically (high N = dark surface, low N =
+bright text), so it's remapped to a cool-grey light ramp that preserves
+that meaning; accent/status hues are shifted a step deeper for contrast on
+white. What landed:
+
+- `data-theme` on `<html>` (default `dark`), flipped by a header toggle
+  (☀ in dark → ☾ in light; the glyph swap is pure CSS via `.theme-toggle`).
+  Two states only — dark/light — persisted in `localStorage`
+  (`signaldesk_theme`).
+- The **one piece of client JS in the app, by design**: a tiny pre-paint
+  boot script in `app/layout.js` that applies the saved theme before first
+  paint (no flash) and defines `window.__sdToggleTheme`, which the header
+  button calls via an inline `onclick` (rendered as raw HTML so it needs no
+  client component — the site stays server-only). Display stays 100%
+  CSS-driven; this just flips an attribute + updates `<meta theme-color>`.
+- A handful of hardcoded colors that Tailwind can't reach (SVG
+  stroke/fill props, generated `:checked ~` stylesheet strings) were
+  swapped from literal hex/rgb to `var(--color-*)` so they flip too. SVG
+  colors moved from presentation attributes to `style` (presentation attrs
+  don't resolve `var()`; CSS `style` does) — see `Sparkline` in
+  `app/components/ui.js`.
+- Verified in both themes with headless Chromium; dark mode is unchanged.
+
 Digest content/source refinement continues in parallel as the owner
 reports what he wants tuned.
 

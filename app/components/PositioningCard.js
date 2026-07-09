@@ -133,7 +133,7 @@ function AssetRow({ r }) {
         <div className="mt-2 flex items-center gap-2">
           <Sparkline
             values={r.fundingSpark}
-            stroke="#71717a"
+            stroke="var(--color-zinc-500)"
             height={20}
             className="h-5 w-full max-w-[240px]"
             label={`${r.symbol} funding rate, 7-day trend`}
@@ -154,7 +154,7 @@ function filterCss(keys) {
   for (const k of keys) {
     rules.push(`#pf-${k}:checked ~ .pcdeep summary .pcbar-${k}{display:block}`);
     rules.push(
-      `#pf-${k}:checked ~ .pcstrip label[for="pf-${k}"]{box-shadow:inset 0 0 0 1.5px rgb(228 228 231 / .7)}`
+      `#pf-${k}:checked ~ .pcstrip label[for="pf-${k}"]{box-shadow:inset 0 0 0 1.5px color-mix(in oklab, var(--color-zinc-200) 70%, transparent)}`
     );
   }
   return rules.join('\n');

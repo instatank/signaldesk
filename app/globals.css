@@ -1,1 +1,89 @@
 @import 'tailwindcss';
+
+/* ============================================================
+   Daylight mode (light theme)
+   ------------------------------------------------------------
+   SignalDesk is built dark-first with Tailwind utility classes,
+   and Tailwind v4 compiles every color utility to a
+   var(--color-*) reference (e.g. `bg-zinc-900` →
+   `background-color:var(--color-zinc-900)`). So re-theming the
+   whole app is a matter of re-pointing those variables under
+   [data-theme="light"] — no per-component rewrite needed.
+
+   The neutral (zinc) ramp is used *semantically* everywhere:
+   high numbers = dark surfaces (bg-zinc-950/900/800), low
+   numbers = bright text (text-zinc-100/200/300). We remap it to
+   a cool-grey light ramp that keeps that meaning (surfaces stay
+   light, text stays dark). Accent + status hues are shifted a
+   step deeper so they keep enough contrast on white.
+
+   The toggle itself lives in the tiny boot script in layout.js;
+   it only flips this attribute and persists the choice. Display
+   stays 100% CSS-driven — no client framework JS.
+   ============================================================ */
+
+:root {
+  color-scheme: dark;
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+
+  /* Neutral ramp — surfaces (high N) → light, text (low N) → dark. */
+  --color-zinc-950: #f4f5f7; /* page background */
+  --color-zinc-900: #ffffff; /* card / panel surface */
+  --color-zinc-800: #e6e8ec; /* chips, borders, dividers, popovers */
+  --color-zinc-700: #ccd0d8; /* stronger border / faint gridlines / dimmest text */
+  --color-zinc-600: #9aa1ad; /* dim text / small neutral fills */
+  --color-zinc-500: #6b7280; /* muted text (by far the most common) */
+  --color-zinc-400: #4b5563; /* secondary text */
+  --color-zinc-300: #374151; /* stronger secondary text */
+  --color-zinc-200: #1f2937; /* near-primary text / active accents */
+  --color-zinc-100: #111827; /* primary text */
+  --color-zinc-50: #0b0f19;
+
+  /* Accent — a blue that stays legible on white. */
+  --color-sky-300: #0ea5e9;
+  --color-sky-400: #0284c7;
+  --color-sky-500: #0369a1;
+
+  /* Status — deepen the bright ends for contrast on white. The
+     500-level shades are kept default because they are used mostly
+     as /10–/25 alpha washes, which read fine on a light surface. */
+  --color-emerald-400: #059669;
+  --color-emerald-300: #047857;
+  --color-red-400: #dc2626;
+  --color-red-300: #dc2626;
+  --color-amber-400: #b45309;
+  --color-amber-300: #b45309;
+  --color-blue-400: #2563eb;
+  --color-lime-400: #4d7c0f;
+  --color-lime-300: #4d7c0f;
+
+  /* Decorative category hues — darken the bright text ends for white. */
+  --color-violet-400: #7c3aed;
+  --color-violet-300: #6d28d9;
+  --color-indigo-400: #4f46e5;
+  --color-indigo-300: #4338ca;
+  --color-teal-400: #0d9488;
+  --color-teal-300: #0f766e;
+  --color-cyan-300: #0e7490;
+  --color-yellow-400: #ca8a04;
+  --color-yellow-300: #a16207;
+  --color-orange-300: #c2410c;
+  --color-pink-300: #db2777;
+  --color-fuchsia-300: #c026d3;
+}
+
+/* Theme toggle — a pure-CSS glyph swap so the correct icon shows on
+   first paint regardless of the active theme (no post-load JS timing).
+   Sun in dark mode (tap → go light), moon in light mode (tap → go dark). */
+.theme-toggle .ico-light {
+  display: none;
+}
+[data-theme='light'] .theme-toggle .ico-dark {
+  display: none;
+}
+[data-theme='light'] .theme-toggle .ico-light {
+  display: inline;
+}

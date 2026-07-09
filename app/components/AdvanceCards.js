@@ -71,7 +71,7 @@ export function CrowdCard({ crowd, now }) {
                     {r.spark.length >= 2 && (
                       <Sparkline
                         values={r.spark}
-                        stroke="#71717a"
+                        stroke="var(--color-zinc-500)"
                         height={20}
                         className="h-5 w-full"
                         label={`${r.symbol} long/short ratio, 24h trend`}

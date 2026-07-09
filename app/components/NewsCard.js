@@ -180,7 +180,7 @@ function filterCss(keys) {
     rules.push(`#nf-${k}:checked ~ .nb .nh:not(.t-${k}){display:none}`);
     // Highlight the active bar…
     rules.push(
-      `#nf-${k}:checked ~ .np .nprow-${k}{background-color:rgb(39 39 42 / .7);box-shadow:inset 0 0 0 1px rgb(63 63 70)}`
+      `#nf-${k}:checked ~ .np .nprow-${k}{background-color:color-mix(in oklab, var(--color-zinc-800) 70%, transparent);box-shadow:inset 0 0 0 1px var(--color-zinc-700)}`
     );
     rules.push(`#nf-${k}:checked ~ .np .nprow-${k} .npbar{opacity:1}`);
     // …and dim every other bar back so the active one clearly stands out.

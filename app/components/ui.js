@@ -126,7 +126,7 @@ export function Sparkline({
   values,
   width = 240,
   height = 48,
-  stroke = '#a1a1aa',
+  stroke = 'var(--color-zinc-400)',
   extremes = null,
   className = 'h-12 w-full',
   label = '30-day trend',
@@ -147,7 +147,7 @@ export function Sparkline({
       preserveAspectRatio="none"
     >
       {extremes && max > extremes.high && (
-        <rect x="0" y="0" width={width} height={Math.max(0, yFor(extremes.high))} fill="#10b981" opacity="0.08" />
+        <rect x="0" y="0" width={width} height={Math.max(0, yFor(extremes.high))} style={{ fill: 'var(--color-emerald-500)' }} opacity="0.08" />
       )}
       {extremes && min < extremes.low && (
         <rect
@@ -155,11 +155,11 @@ export function Sparkline({
           y={Math.min(height, yFor(extremes.low))}
           width={width}
           height={Math.max(0, height - yFor(extremes.low))}
-          fill="#ef4444"
+          style={{ fill: 'var(--color-red-500)' }}
           opacity="0.08"
         />
       )}
-      <polyline points={points} fill="none" stroke={stroke} strokeWidth="1.5" strokeLinejoin="round" />
+      <polyline points={points} fill="none" style={{ stroke }} strokeWidth="1.5" strokeLinejoin="round" />
     </svg>
   );
 }

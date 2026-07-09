@@ -7,11 +7,11 @@ import { formatEventDates } from '../../lib/macro.js';
 import { ChangeChip, Disclose, Explainer, Sparkline, TONE_TEXT } from './ui.js';
 
 const FNG_STROKES = {
-  red: '#f87171',
-  amber: '#fbbf24',
-  gray: '#a1a1aa',
-  lime: '#a3e635',
-  green: '#34d399',
+  red: 'var(--color-red-400)',
+  amber: 'var(--color-amber-400)',
+  gray: 'var(--color-zinc-400)',
+  lime: 'var(--color-lime-400)',
+  green: 'var(--color-emerald-400)',
 };
 
 const FNG_EXPLAINER = (

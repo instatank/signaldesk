@@ -46,7 +46,7 @@ function FundingBars({ values }) {
   const width = vals.length * (bw + gap);
   return (
     <svg viewBox={`0 0 ${width} ${h}`} className="h-14 w-full" preserveAspectRatio="none" role="img" aria-label="daily funding">
-      <line x1="0" y1={mid} x2={width} y2={mid} stroke="#3f3f46" strokeWidth="0.5" />
+      <line x1="0" y1={mid} x2={width} y2={mid} style={{ stroke: 'var(--color-zinc-700)' }} strokeWidth="0.5" />
       {vals.map((v, i) => {
         const barH = (Math.abs(v) / max) * (mid - 2);
         return (
@@ -56,7 +56,7 @@ function FundingBars({ values }) {
             y={v >= 0 ? mid - barH : mid}
             width={bw}
             height={Math.max(barH, 0.5)}
-            fill={v >= 0 ? '#60a5fa' : '#f87171'}
+            style={{ fill: v >= 0 ? 'var(--color-blue-400)' : 'var(--color-red-400)' }}
           />
         );
       })}
@@ -201,7 +201,7 @@ export default async function CoinDetailPage({ params }) {
             {d.relSeries?.length >= 2 ? (
               <Sparkline
                 values={d.relSeries}
-                stroke={d.relSeries[d.relSeries.length - 1] >= 0 ? '#34d399' : '#f87171'}
+                stroke={d.relSeries[d.relSeries.length - 1] >= 0 ? 'var(--color-emerald-400)' : 'var(--color-red-400)'}
                 height={56}
                 className="h-14 w-full"
                 label="relative performance"
@@ -219,7 +219,7 @@ export default async function CoinDetailPage({ params }) {
             {d.oiSeries?.length >= 2 ? (
               <Sparkline
                 values={d.oiSeries}
-                stroke={d.oiChange >= 0 ? '#34d399' : '#f87171'}
+                stroke={d.oiChange >= 0 ? 'var(--color-emerald-400)' : 'var(--color-red-400)'}
                 height={56}
                 className="h-14 w-full"
                 label="open interest"

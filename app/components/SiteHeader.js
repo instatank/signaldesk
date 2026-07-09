@@ -10,6 +10,22 @@ const PAGES = [
   { href: '/archive', label: 'Archive' },
 ];
 
+// Light/dark flip. Rendered as raw HTML so the inline `onclick` reaches the
+// boot-script handler without pulling in a client component — the site stays
+// server-only. Both glyphs ship; CSS (`.theme-toggle`) shows the right one
+// per active theme, so first paint is always correct.
+function ThemeToggle() {
+  const html =
+    '<button type="button" onclick="window.__sdToggleTheme&&window.__sdToggleTheme()"' +
+    ' aria-label="Toggle light or dark theme" title="Toggle light / dark"' +
+    ' class="theme-toggle inline-flex h-6 w-6 items-center justify-center rounded-full' +
+    ' border border-zinc-800 text-zinc-400 transition-colors hover:border-sky-500 hover:text-sky-400">' +
+    '<span class="ico-dark" aria-hidden="true">☀</span>' +
+    '<span class="ico-light" aria-hidden="true">☾</span>' +
+    '</button>';
+  return <span className="contents" dangerouslySetInnerHTML={{ __html: html }} />;
+}
+
 export default function SiteHeader({ now, latestTs = null, stale = false, active = '/' }) {
   return (
     <header className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
@@ -45,6 +61,7 @@ export default function SiteHeader({ now, latestTs = null, stale = false, active
             data may be stale
           </span>
         )}
+        <ThemeToggle />
       </div>
     </header>
   );

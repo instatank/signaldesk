@@ -20,7 +20,7 @@ const SORT_KEYS = [
 function buildSortCss(rows) {
   let css = '#sk-size:checked~.thead .th-size,';
   css += SORT_KEYS.map((k) => `#sk-${k.id}:checked~.thead .th-${k.id}`).join(',');
-  css += '{color:#e4e4e7!important}';
+  css += '{color:var(--color-zinc-200)!important}';
   css += '#sk-size:checked~.thead .th-size .ar,';
   css += SORT_KEYS.map((k) => `#sk-${k.id}:checked~.thead .th-${k.id} .ar`).join(',');
   css += '{opacity:1}';

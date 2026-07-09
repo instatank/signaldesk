@@ -23,7 +23,7 @@ export function RelSpark({ values, className = 'h-6 w-20' }) {
   return (
     <Sparkline
       values={values}
-      stroke={up ? '#34d399' : '#f87171'}
+      stroke={up ? 'var(--color-emerald-400)' : 'var(--color-red-400)'}
       height={24}
       width={80}
       className={className}
