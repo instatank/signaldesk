@@ -29,11 +29,14 @@
 [data-theme='light'] {
   color-scheme: light;
 
-  /* Neutral ramp — surfaces (high N) → light, text (low N) → dark. */
-  --color-zinc-950: #f4f5f7; /* page background */
+  /* Neutral ramp — surfaces (high N) → light, text (low N) → dark.
+     Surfaces lean subtly cool (blue channel highest) and the page sits a
+     touch below pure white so it reads as an intentional light blue-grey
+     next to the white cards — never a warm/pink near-white. */
+  --color-zinc-950: #eef1f6; /* page background — soft cool grey */
   --color-zinc-900: #ffffff; /* card / panel surface */
-  --color-zinc-800: #e6e8ec; /* chips, borders, dividers, popovers */
-  --color-zinc-700: #ccd0d8; /* stronger border / faint gridlines / dimmest text */
+  --color-zinc-800: #e2e7ee; /* chips, borders, dividers, popovers */
+  --color-zinc-700: #c8d0dc; /* stronger border / faint gridlines / dimmest text */
   --color-zinc-600: #9aa1ad; /* dim text / small neutral fills */
   --color-zinc-500: #6b7280; /* muted text (by far the most common) */
   --color-zinc-400: #4b5563; /* secondary text */
