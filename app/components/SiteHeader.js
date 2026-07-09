@@ -6,6 +6,7 @@ const PAGES = [
   { href: '/', label: 'Dashboard' },
   { href: '/advance', label: 'Advance' },
   { href: '/flash', label: 'Flash' },
+  { href: '/screener', label: 'Screener' },
   { href: '/archive', label: 'Archive' },
 ];
 

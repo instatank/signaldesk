@@ -36,5 +36,26 @@
       { "symbol": "USDC", "coingecko": "usd-coin" },
       { "symbol": "DAI", "coingecko": "dai" }
     ]
+  },
+  "screener": {
+    "universeSize": 30,
+    "ticker24hUrl": "https://fapi.binance.com/fapi/v1/ticker/24hr",
+    "klinesUrl": "https://fapi.binance.com/fapi/v1/klines",
+    "premiumIndexUrl": "https://fapi.binance.com/fapi/v1/premiumIndex",
+    "fundingHistoryUrl": "https://fapi.binance.com/fapi/v1/fundingRate",
+    "openInterestHistUrl": "https://fapi.binance.com/futures/data/openInterestHist",
+    "names": {
+      "BTCUSDT": "Bitcoin", "ETHUSDT": "Ethereum", "SOLUSDT": "Solana",
+      "BNBUSDT": "BNB", "XRPUSDT": "XRP", "DOGEUSDT": "Dogecoin",
+      "ADAUSDT": "Cardano", "TRXUSDT": "TRON", "LINKUSDT": "Chainlink",
+      "AVAXUSDT": "Avalanche", "SUIUSDT": "Sui", "DOTUSDT": "Polkadot",
+      "HYPEUSDT": "Hyperliquid", "ZECUSDT": "Zcash", "XMRUSDT": "Monero",
+      "LTCUSDT": "Litecoin", "BCHUSDT": "Bitcoin Cash", "XLMUSDT": "Stellar",
+      "UNIUSDT": "Uniswap", "AAVEUSDT": "Aave", "VVVUSDT": "Venice",
+      "NEARUSDT": "NEAR", "APTUSDT": "Aptos", "ARBUSDT": "Arbitrum",
+      "OPUSDT": "Optimism", "TONUSDT": "Toncoin", "ATOMUSDT": "Cosmos",
+      "FILUSDT": "Filecoin", "INJUSDT": "Injective", "TAOUSDT": "Bittensor",
+      "WLDUSDT": "Worldcoin", "SEIUSDT": "Sei", "PEPEUSDT": "Pepe"
+    }
   }
 }

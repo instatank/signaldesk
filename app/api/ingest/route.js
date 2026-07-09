@@ -17,6 +17,7 @@ import {
   fetchStablecoinAndGlobal,
   fetchDailyRollup,
 } from '../../../lib/advanced.js';
+import { refreshScreenerPrices } from '../../../lib/screener-live.js';
 import sources from '../../../config/sources.json';
 import { withCors } from '../../../lib/cors.js';
 
@@ -160,6 +161,17 @@ export async function GET(request) {
     errors.push(...advanced.errors);
   }
 
+  // --- Screener live prices: keep the screener's price/24h column fresh
+  // between daily rebuilds. Fully isolated — a failure never touches ingest.
+  let screenerLive = null;
+  if (sources.screener) {
+    try {
+      screenerLive = await refreshScreenerPrices(db, sources.screener, startedAt);
+    } catch (err) {
+      errors.push({ stream: 'screener-live', error: String(err.message || err) });
+    }
+  }
+
   return withCors(NextResponse.json({
     ok: true,
     ranAt: startedAt.toISOString(),
@@ -170,6 +182,7 @@ export async function GET(request) {
     fng: fng ? fng.value : null,
     prices: prices ? Object.keys(prices) : null,
     advanced: advanced.sections,
+    screenerLive: screenerLive ? screenerLive.updated : null,
     errors,
   }));
 }

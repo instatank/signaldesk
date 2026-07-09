@@ -176,6 +176,43 @@ last-4h reaction read (standing no-predictions rules intact). What landed:
   60s retry is worse UX), and **no Telegram push** (owner is at the screen).
   Result stored in `flash/latest`. To flip either default, edit `runFlash`.
 
+**Screener SHIPPED 2026-07-09** (owner cloned a reference "crypto-screener":
+what's strong / moving / crowded across a coin universe, plus a per-coin
+detail view). Decisions locked by owner: **universe = top ~30** Binance-
+futures coins by volume (unioned with our tracked 6, which are highlighted);
+**zero client JS**. Key property: **NO AI, essentially zero cost** — it's
+pure Binance-futures data + arithmetic. What landed:
+
+- New page `/screener` (5th nav tab): a market-summary banner (BTC 200-day
+  regime, breadth, avg month return, funding crowding, OI anomaly), five
+  insight cards (Strongest / Picking up speed / Crowded longs / Washed out /
+  Yesterday's big moves), and an ALL COINS table. Rolling windows per owner:
+  1d = 24h, 1w = 7d, 1m = 30d, 2m = 60d.
+- **Table sorting is zero-JS** — a hidden radio group + a generated
+  `:checked ~` stylesheet that sets each row's CSS `order` per sort key
+  (same trick as the news filter). Rows are a flex column so `order` reflows
+  them. Live prices carry a small green dot.
+- Per-coin detail `/screener/[coin]`: strength headline, return ladder, five
+  templated plain-language reads (NOT AI — interpret.js-style), and three
+  static SVG charts (rel-perf vs the average coin, daily funding bars, OI
+  change). "open in TradingView" is just an external link.
+- **Data flow:** daily cron `/api/screener` (00:45 UTC) computes the whole
+  thing → one `screener/latest` doc via `buildScreener()` in `lib/screener.js`
+  (fetchers batched 6-at-a-time for Binance rate-limit courtesy; all pure
+  math exported + tested in `tests/screener.test.mjs`). A **near-real-time
+  price refresh** (`refreshScreenerPrices` in `lib/screener-live.js`)
+  piggybacks on the 15-min `/api/ingest`, writing only a compact `livePrices`
+  map (never rewriting the rows array); the reader overlays it.
+- **REFRESH button** (faithful to the reference + fixes cold-start): a public
+  `/api/screener/refresh` POST gated by a 5-min Firestore-transaction
+  cooldown (`acquireScreenerRefresh`), same public-but-bounded pattern as
+  flash. Zero-JS form → 303 back. The `/screener` page is `force-dynamic` so
+  refresh + live prices show immediately.
+- All Binance futures endpoints live in `config/sources.json` under
+  `screener` (incl. a `names` map for pretty coin names); region stays `sin1`
+  so Binance is reachable. Sandbox can't hit Binance, so live data only
+  appears after deploy (hit Refresh, or wait for the cron).
+
 Digest content/source refinement continues in parallel as the owner
 reports what he wants tuned.
 
@@ -207,6 +244,11 @@ rationale, condensed here)
 | `app/api/flash/route.js` | On-demand: cooldown-gated PUBLIC endpoint → lean ingest + 4h flash digest → `flash/latest` |
 | `lib/flash.js` | Flash: cooldown math, lean ingest, `runFlash` orchestrator, `flash/latest` reader |
 | `app/flash/page.js` | The Flash page (button + last real-time reaction read) |
+| `app/api/screener/route.js` | Daily cron: build the screener (Binance futures) → `screener/latest` |
+| `app/api/screener/refresh/route.js` | Public cooldown-gated REFRESH → rebuild screener now |
+| `lib/screener.js` | Screener: fetchers (batched) + all pure math + insights/summary + reader |
+| `lib/screener-live.js` | 15-min live-price overlay refresh (piggybacks on `/api/ingest`) |
+| `app/screener/page.js` + `[coin]/page.js` | Screener list (cards + zero-JS sort table) + per-coin detail |
 | `lib/derivatives.js` | Binance→OKX funding/OI adapter with silent failover |
 | `lib/advanced.js` | Advance-page data: long/short, depth, stablecoins, options, correlation rollup (fetchers + math + shaping) |
 | `lib/macro.js` | Upcoming-macro-events window over `config/macro-events.json` |
