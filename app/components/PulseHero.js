@@ -67,14 +67,24 @@ function FearGreedBlock({ fearGreed }) {
   );
 }
 
-export default function PulseHero({ briefing, fearGreed, rows, macroEvents = [], now }) {
+// label/emptyText default to the scheduled-dashboard copy; the Flash page
+// overrides them to frame the same hero as a live 4h reaction read.
+export default function PulseHero({
+  briefing,
+  fearGreed,
+  rows,
+  macroEvents = [],
+  now,
+  label = "Today's briefing",
+  emptyText = 'No briefing yet — the first one lands after the next digest run (07:00 / 19:00 IST).',
+}) {
   const digest = briefing?.digest;
   return (
     <section className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 sm:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-5">
         <div className="min-w-0 flex-1">
           <div className="mb-1 flex items-center gap-2 text-xs uppercase tracking-widest text-zinc-500">
-            <span>Today&rsquo;s briefing</span>
+            <span>{label}</span>
             {briefing?.generatedAt && (
               <span className="normal-case tracking-normal text-zinc-600">
                 {relativeTime(briefing.generatedAt, now)}
@@ -89,9 +99,7 @@ export default function PulseHero({ briefing, fearGreed, rows, macroEvents = [],
           {digest?.market_pulse ? (
             <p className="text-base leading-relaxed text-zinc-100 sm:text-lg">{digest.market_pulse}</p>
           ) : (
-            <p className="text-sm text-zinc-500">
-              No briefing yet — the first one lands after the next digest run (07:00 / 19:00 IST).
-            </p>
+            <p className="text-sm text-zinc-500">{emptyText}</p>
           )}
         </div>
         {fearGreed && <FearGreedBlock fearGreed={fearGreed} />}
