@@ -7,13 +7,13 @@ Firestore, deploy to Vercel with your secrets, and test it.
 Keep a notes file open — you'll collect **5 secret values** along the way
 and paste them all into Vercel in step 4.
 
-> **Status: Steps 1–4 are done.** The app is live at
-> **https://signaldesk-tawny.vercel.app**, all 5 env vars are set, and it's
-> git-connected so future pushes to `claude/new-session-8uz6j0` redeploy it
-> automatically. **Step 5 (testing) is the next thing to do.** Steps 1–4
-> below are left in place for reference (re-setup, rotating a secret,
-> onboarding a second machine, etc.) — skip straight to Step 5 unless you
-> need one of those.
+> **Status: ALL steps 1–5 are done** (Step 5 confirmed by the owner
+> 2026-07-06 — the digest arrives on Telegram twice daily). The app is live
+> at **https://signaldesk-tawny.vercel.app**, all 5 env vars are set, and
+> it's git-connected so future pushes to `claude/new-session-8uz6j0`
+> redeploy it automatically. Everything below is kept for reference
+> (re-setup, rotating a secret, onboarding a second machine) and the
+> troubleshooting notes at the bottom remain relevant for future breakage.
 
 ---
 
@@ -108,11 +108,12 @@ Now deploy:
 
 The owner upgraded to **Vercel Pro**, which runs cron jobs at their exact
 scheduled time with no per-project job-count limit that would block this.
-`vercel.json` schedules three cron jobs, all handled natively by Vercel —
+`vercel.json` schedules four cron entries, all handled natively by Vercel —
 no external pinger needed:
 
 - `/api/ingest` — every 15 minutes
 - `/api/digest` — 01:30 UTC (07:00 IST) and 13:30 UTC (19:00 IST)
+- `/api/screener` — 00:45 UTC daily (rebuilds the screener page's data)
 
 (On the free Hobby plan, cron jobs only fire once per day and not at an
 exact minute, and are capped at 2 per project — that's why an external
@@ -154,7 +155,7 @@ below (run in any terminal; on Windows use Git Bash or PowerShell's
    ```
    Within ~30 seconds your Telegram bot should message you the briefing. 🎉
 
-From tomorrow, the digest arrives automatically at 07:00 IST.
+From tomorrow, the digest arrives automatically at 07:00 and 19:00 IST.
 
 ---
 

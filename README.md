@@ -1,27 +1,33 @@
 # SignalDesk
 
 A beginner trader's daily market intelligence system: three high-signal
-crypto data streams + one AI-written morning briefing, pushed to Telegram
-at 07:00 IST.
+crypto data streams + one AI-written briefing, pushed to Telegram twice
+daily (07:00 and 19:00 IST), plus a zero-client-JS dashboard.
 
-**Phase 1 (this build):** the pipeline. No dashboard yet — the product is
-the Telegram digest. The dashboard is Phase 2, built after a few days of
-validating the digest. Full spec in `SIGNALDESK_PRD.md`; owner setup steps
-in `SETUP.md`.
+All planned phases have shipped: the pipeline (Phase 1), the dashboard
+(Phase 2), the P1 fast-follows (archive, funding sparklines, macro-event
+flags) and the free-tier P2 stats, plus owner-requested additions — an
+on-demand Flash briefing, a no-AI market screener, and a light/dark theme.
+Full spec in `SIGNALDESK_PRD.md`; owner setup steps in `SETUP.md`; current
+project state and handoff notes in `CLAUDE.md`.
 
 ## How it works
 
 ```
-Vercel Cron (every 15 min)          Vercel Cron (daily 07:00 IST)
-       │                                     │
-       ▼                                     ▼
-/api/ingest  ──────────────►  Firestore  ◄── /api/digest
-  • RSS fetch + dedupe          │              • assemble last-24h data
-  • Funding/OI (Binance,        │              • Claude API call
-    OKX auto-fallback)          │              • store digest JSON
-  • Fear & Greed index          │              • Telegram sendMessage
-  • CoinGecko prices            ▼
-                          (dashboard reads this in Phase 2)
+Vercel Cron                              Vercel Cron
+  /api/ingest    every 15 min              /api/digest    07:00 & 19:00 IST
+  /api/screener  daily 00:45 UTC           • assemble last-24h data
+       │                                     (+ upcoming macro events)
+       ▼                                   • Claude API call
+   Firestore  ◄──────────────────────────  • store digest JSON
+       │                                   • Telegram sendMessage
+       ▼
+Next.js pages (server-only, zero client JS):
+  /          10-second read: briefing, F&G, prices, positioning, news
+  /advance   long/short ratios, depth, stablecoins, options, correlations
+  /flash     on-demand real-time reaction briefing (public, cooldown-gated)
+  /screener  strength/momentum/crowding across ~30 coins (+ per-coin detail)
+  /archive   past briefings, scrollable
 ```
 
 - **Region pinned to Singapore** (`sin1` in `vercel.json`) — Binance
@@ -31,13 +37,21 @@ Vercel Cron (every 15 min)          Vercel Cron (daily 07:00 IST)
   source it came from.
 - **AI is optional, never load-bearing**: if the Claude call fails (one
   retry), a raw-data Telegram message built from the interpretation tables
-  in `lib/interpret.js` goes out instead.
+  in `lib/interpret.js` goes out instead. The screener uses no AI at all —
+  pure exchange data + arithmetic.
 - **Feeds are config, not code** (`config/sources.json`); one dead feed is
-  logged and skipped, never fatal.
+  logged and skipped, never fatal. The macro calendar
+  (`config/macro-events.json`) is owner-editable the same way.
 - **Dedupe**: headline doc ID = sha256 of the canonical URL (tracking
   params stripped), so republished/overlapping stories store once.
 - **Secrets are server-side only** — see `.env.example` for the list.
   Cron endpoints reject anything without `Authorization: Bearer $CRON_SECRET`.
+  The two public POST endpoints (`/api/flash`, `/api/screener/refresh`)
+  are instead bounded by Firestore-transaction cooldowns.
+- **Zero client JS** in every page; disclosure is native `<details>`,
+  filters/sorting are hidden radio groups + generated CSS. The single
+  deliberate exception: a tiny pre-paint theme-boot script in
+  `app/layout.js` for the dark/light toggle.
 
 ## Dependencies (deliberately minimal)
 
@@ -60,4 +74,7 @@ npm run build           # production build
 |---|---|---|
 | `headlines` | sha256(canonical URL) | title, url, source, publishedAt, ingestedAt |
 | `metrics` | auto | per-run snapshot: funding/OI per coin (+source), F&G (+30d history), prices, errors |
-| `digests` | `YYYY-MM-DD` (IST) | structured digest JSON, rendered message, degraded flag |
+| `digests` | `YYYY-MM-DD-HH` (IST slot, e.g. `2026-07-03-07`) | structured digest JSON, rendered message, degraded flag |
+| `advanced` | `latest` (merge-written) | long/short, depth, stablecoins, options, correlation rollup |
+| `flash` | `latest` + `cooldown` | last flash briefing + its transaction-claimed cooldown slot |
+| `screener` | `latest` (+ `livePrices` overlay) | daily screener build + 15-min live-price refresh |

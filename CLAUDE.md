@@ -24,13 +24,15 @@ build currently stands.
 - Deployed: **https://signaldesk-tawny.vercel.app** — Vercel project
   `signaldesk` (`prj_KyENx9ytovswy3g9ZhIq93FGVOXH`), team
   `ankitanand25-4465's projects` (`team_P4uKN28r7smT5lPcH5jm0Jac`), connected
-  to GitHub (`instatank/signaldesk`), last deploy `dpl_FmrzgxjCnghVZMvuRidri1xsKsYK`
-  built from commit `86266a8`, state `READY`, target `production`.
+  to GitHub (`instatank/signaldesk`), last deploy `dpl_81gNJLpLkubwcqp2cnuqfyqRucp2`
+  built from commit `479b375` (daylight mode), state `READY`, target
+  `production` (verified via Vercel MCP 2026-07-17).
 - All 5 env vars are set in Vercel (owner did this manually):
   `ANTHROPIC_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`,
   `CRON_SECRET`, `FIREBASE_SERVICE_ACCOUNT`.
 - Cron jobs are wired in `vercel.json` (`/api/ingest` every 15 min,
-  `/api/digest` at 01:30 UTC = 07:00 IST and 13:30 UTC = 19:00 IST) and
+  `/api/digest` at 01:30 UTC = 07:00 IST and 13:30 UTC = 19:00 IST,
+  `/api/screener` at 00:45 UTC daily) and
   run automatically since this is a Production deployment — Vercel Cron
   only fires on Production, not Preview. **The owner is on the Vercel Pro
   plan** (upgraded to get exact cron timing and more than 2 jobs/project
@@ -242,6 +244,29 @@ white. What landed:
   don't resolve `var()`; CSS `style` does) — see `Sparkline` in
   `app/components/ui.js`.
 - Verified in both themes with headless Chromium; dark mode is unchanged.
+
+**Production-alignment audit 2026-07-17** (branch
+`claude/production-alignment-pending-phases-a8k971`, cut from production
+commit `479b375` — the exact commit the live production deployment was
+built from). Result: **every planned phase and step is complete** — PRD
+§12 Phases 1–3, all P0 and P1 items, the free-tier P2 stats, plus the
+owner-requested Flash / Screener / Daylight additions. 71/71 offline
+tests pass; production build clean. Docs were re-synced in this audit
+(README rewritten from its stale Phase-1-only text; SETUP.md status note
+and cron list corrected). What remains open is open **by explicit
+decision, not oversight**:
+
+- Paid-source stats — liquidations & ETF flows (Coinglass), exchange
+  netflows (CryptoQuant), whale alerts — await an owner budget decision;
+  listed in the `/advance` footer.
+- The TradeGenie bridge (PRD §6 P2) is explicitly deferred by the PRD and
+  spans a second app outside this repo.
+- Coin-list expansion to top 10 (P1) was declined by the owner 2026-07-07.
+- The PRD §8 X follow-list dashboard link was deliberately dropped in
+  `PHASE2_DASHBOARD_PROMPT.md` ("keep footer minimal"); the list itself is
+  manual curation by the owner, nothing to build.
+- `config/macro-events.json` needs its yearly refresh when extending into
+  2027 (currently covers through Dec 2026).
 
 Digest content/source refinement continues in parallel as the owner
 reports what he wants tuned.
