@@ -32,9 +32,12 @@ export const TONE_CHIP = {
 // section to one row. `stat` is the snapshot value that keeps
 // communicating while folded — the page scales by adding cards, and the
 // reader scales by collapsing the ones they're done with.
-export function Card({ title, stat = null, children }) {
+// `open={false}` starts a card folded: for reference material that should
+// be one row until it's wanted, never for live data (which must be
+// readable without a click).
+export function Card({ title, stat = null, open = true, children }) {
   return (
-    <details open className="group/card rounded-2xl border border-zinc-800 bg-zinc-900">
+    <details open={open} className="group/card rounded-2xl border border-zinc-800 bg-zinc-900">
       {/* The header is a tinted "tab" with a chevron chip — a clear signal
           the whole bar is clickable to fold/unfold the card. */}
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl bg-zinc-800/50 p-4 transition-colors hover:bg-zinc-800/80 group-open/card:rounded-b-none group-open/card:border-b group-open/card:border-zinc-800 sm:p-5 [&::-webkit-details-marker]:hidden">
