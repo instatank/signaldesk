@@ -2,6 +2,7 @@
 // scrollable learning record. The pulse line is always visible; the full
 // briefing sits behind the standard expand.
 import { getDigestArchive, istDisplayDate, istTimeString } from '../../lib/dashboard.js';
+import BriefingBody from '../components/BriefingBody.js';
 import SiteHeader from '../components/SiteHeader.js';
 import { Disclose } from '../components/ui.js';
 
@@ -16,44 +17,6 @@ async function loadEntries() {
   } catch (err) {
     return { entries: null, error: String(err?.message || err) };
   }
-}
-
-function FullBriefing({ digest }) {
-  return (
-    <div className="mt-3 space-y-4 text-sm leading-relaxed">
-      {digest.top_stories?.length > 0 && (
-        <div>
-          <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-widest text-zinc-500">📰 Top stories</h3>
-          <ol className="list-decimal space-y-2 pl-5">
-            {digest.top_stories.slice(0, 5).map((s, i) => (
-              <li key={i} className="text-zinc-300">
-                {s.summary} <span className="text-zinc-500">({s.source})</span>
-                <p className="mt-0.5 text-xs text-zinc-500">{s.why_it_matters}</p>
-              </li>
-            ))}
-          </ol>
-        </div>
-      )}
-      {digest.positioning?.length > 0 && (
-        <div>
-          <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-widest text-zinc-500">📊 Positioning</h3>
-          <ul className="space-y-1">
-            {digest.positioning.map((p) => (
-              <li key={p.asset} className="text-zinc-300">
-                <span className="font-medium text-zinc-100">{p.asset}</span>: {p.read}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-      {digest.sentiment_note && <p className="text-zinc-300">🌡 {digest.sentiment_note}</p>}
-      {digest.learn_today && (
-        <p className="rounded-xl border border-indigo-500/30 bg-indigo-500/5 p-3 text-zinc-200">
-          🎓 {digest.learn_today}
-        </p>
-      )}
-    </div>
-  );
 }
 
 export default async function ArchivePage() {
@@ -95,8 +58,11 @@ export default async function ArchivePage() {
               {e.digest?.market_pulse ? (
                 <>
                   <p className="mt-2 text-sm leading-relaxed text-zinc-300">{e.digest.market_pulse}</p>
+                  {e.digest.narrative?.headline && (
+                    <p className="mt-1 text-sm text-zinc-500">🧭 {e.digest.narrative.headline}</p>
+                  )}
                   <Disclose label="Full briefing" className="mt-2.5 border-t border-zinc-800 pt-2">
-                    <FullBriefing digest={e.digest} />
+                    <BriefingBody digest={e.digest} className="mt-3" />
                   </Disclose>
                 </>
               ) : (

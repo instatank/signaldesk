@@ -4,6 +4,7 @@
 // The full briefing sits behind a native <details>.
 import { relativeTime } from '../../lib/dashboard.js';
 import { formatEventDates } from '../../lib/macro.js';
+import BriefingBody from './BriefingBody.js';
 import { ChangeChip, Disclose, Explainer, Sparkline, TONE_TEXT } from './ui.js';
 
 const FNG_STROKES = {
@@ -97,7 +98,16 @@ export default function PulseHero({
             )}
           </div>
           {digest?.market_pulse ? (
-            <p className="text-base leading-relaxed text-zinc-100 sm:text-lg">{digest.market_pulse}</p>
+            <>
+              <p className="text-base leading-relaxed text-zinc-100 sm:text-lg">
+                {digest.market_pulse}
+              </p>
+              {/* Teaser for the synthesis behind the expand — the reader
+                  should see the day's angle without opening anything. */}
+              {digest.narrative?.headline && (
+                <p className="mt-1.5 text-sm text-zinc-400">🧭 {digest.narrative.headline}</p>
+              )}
+            </>
           ) : (
             <p className="text-sm text-zinc-500">{emptyText}</p>
           )}
@@ -149,62 +159,7 @@ export default function PulseHero({
           closeLabel="Collapse briefing"
           className="mt-4 border-t border-zinc-800 pt-3"
         >
-          <div className="mt-4 space-y-5 text-sm leading-relaxed">
-            {digest.top_stories?.length > 0 && (
-              <div>
-                <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-zinc-500">
-                  📰 Top stories
-                </h3>
-                <ol className="space-y-3">
-                  {digest.top_stories.slice(0, 5).map((s, i) => (
-                    <li key={i} className="flex gap-3">
-                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-[11px] font-bold tabular-nums text-zinc-400">
-                        {i + 1}
-                      </span>
-                      <div className="min-w-0">
-                        <p className="text-zinc-200">
-                          {s.summary} <span className="text-zinc-500">({s.source})</span>
-                        </p>
-                        <p className="mt-1 border-l-2 border-sky-500/40 pl-2 text-xs text-zinc-400">
-                          {s.why_it_matters}
-                        </p>
-                      </div>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            )}
-            {digest.positioning?.length > 0 && (
-              <div>
-                <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-zinc-500">
-                  📊 Positioning
-                </h3>
-                <ul className="space-y-1">
-                  {digest.positioning.map((p) => (
-                    <li key={p.asset} className="text-zinc-300">
-                      <span className="font-medium text-zinc-100">{p.asset}</span>: {p.read}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {digest.sentiment_note && (
-              <div>
-                <h3 className="mb-1 text-xs font-semibold uppercase tracking-widest text-zinc-500">
-                  🌡 Sentiment
-                </h3>
-                <p className="text-zinc-300">{digest.sentiment_note}</p>
-              </div>
-            )}
-            {digest.learn_today && (
-              <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/5 p-4">
-                <h3 className="mb-1 text-xs font-semibold uppercase tracking-widest text-indigo-400">
-                  🎓 One thing to learn today
-                </h3>
-                <p className="text-zinc-200">{digest.learn_today}</p>
-              </div>
-            )}
-          </div>
+          <BriefingBody digest={digest} className="mt-4" />
         </Disclose>
       )}
     </section>
