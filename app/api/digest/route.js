@@ -49,7 +49,7 @@ export async function GET(request) {
   const degraded = !digest;
   const message = degraded
     ? buildRawFallbackMessage(inputs, now)
-    : formatDigestMessage(digest, now);
+    : formatDigestMessage(digest, now, inputs);
 
   // Telegram failure shouldn't lose the digest — it's stored either way.
   let telegram = 'sent';

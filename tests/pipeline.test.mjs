@@ -8,7 +8,11 @@ import { fetchDerivatives, fetchAllDerivatives, SOURCES } from '../lib/derivativ
 import { fetchAllFeeds, urlHash, canonicalUrl } from '../lib/rss.js';
 import { interpretFunding, interpretOiPrice } from '../lib/interpret.js';
 import { isAuthorized } from '../lib/auth.js';
-import { buildRawFallbackMessage, formatDigestMessage } from '../lib/digest.js';
+import {
+  buildRawFallbackMessage,
+  buildPositioningGrid,
+  formatDigestMessage,
+} from '../lib/digest.js';
 
 const BTC = { symbol: 'BTC', binance: 'BTCUSDT', okx: 'BTC-USDT-SWAP', coingecko: 'bitcoin' };
 
@@ -181,26 +185,80 @@ describe('digest degradation (AI as optional layer)', () => {
   test('raw fallback message renders from stored data alone', () => {
     const msg = buildRawFallbackMessage(inputs, new Date('2026-07-02T02:00:00Z'));
     assert.match(msg, /AI summary unavailable/);
-    assert.match(msg, /Overheated longs/);
-    assert.match(msg, /Fear &amp; Greed: 12/);
-    assert.match(msg, /historically better buying zones/);
     assert.match(msg, /BTC ETF sees record inflows/);
-    // OI+price combo: price up + OI up
-    assert.match(msg, /trend confirmation/);
+    // Sentiment is one line now — the number, not a paragraph.
+    assert.match(msg, /Fear &amp; Greed 12/);
+    assert.doesNotMatch(msg, /historically better buying zones/);
+    // Positioning is the shared deterministic grid: funding emoji + flow tag.
+    assert.match(msg, /<pre>/);
+    assert.match(msg, /🔴 BTC/);
+    assert.match(msg, /new longs/); // price up + OI up
   });
 
-  test('structured digest renders to a Telegram HTML message', () => {
+  test('positioning grid aligns columns and handles missing OI', () => {
+    const grid = buildPositioningGrid(inputs);
+    assert.equal(grid.length, 2); // header + BTC only (ETH derivative is null)
+    assert.match(grid[0], /COIN.*24H.*FUND.*OI.*FLOW/);
+    assert.match(grid[1], /^🔴 BTC/);
+    assert.match(grid[1], /▲2\.4%/);
+    assert.match(grid[1], /\+0\.070%/);
+    assert.match(grid[1], /new longs$/);
+
+    // No derivatives at all -> no grid, no empty block.
+    assert.deepEqual(buildPositioningGrid({ derivatives: {}, prices: {} }), []);
+
+    // Missing OI degrades to an em dash rather than a bogus flow read.
+    const noOi = buildPositioningGrid({
+      derivatives: { BTC: { fundingRate: 0, oiChange24hPct: null } },
+      prices: { BTC: { change24hPct: 1.2 } },
+    });
+    assert.match(noOi[1], /—/);
+    assert.match(noOi[1], /needs 24h/);
+  });
+
+  test('structured digest renders synthesis, grid and one-line sentiment', () => {
     const digest = {
       market_pulse: 'Choppy day, low conviction. <test>',
-      top_stories: [{ summary: 'ETF inflows', why_it_matters: 'Spot demand', source: 'CoinDesk' }],
-      positioning: [{ asset: 'BTC', read: 'Funding overheated, squeeze risk.' }],
-      sentiment_note: 'Extreme Fear at 12.',
+      narrative: {
+        headline: 'Macro is driving, crypto is the passenger',
+        synthesis: 'Every loud story this window came from rates, not from crypto itself.',
+        market_reaction: 'Price held while funding stayed flat — largely priced in.',
+        tension: 'A hot CPI print would flip this read fast.',
+        conviction: 'medium',
+      },
+      top_stories: [
+        {
+          summary: 'ETF inflows',
+          why_it_matters: 'Spot demand',
+          source: 'CoinDesk',
+          category: 'flows',
+          impact: 'high',
+        },
+      ],
+      watch_next: ['Whether funding resets toward neutral'],
       learn_today: 'Funding flipping negative while price holds often precedes squeezes.',
     };
-    const msg = formatDigestMessage(digest, new Date('2026-07-02T02:00:00Z'));
-    assert.match(msg, /Market pulse/);
+    const msg = formatDigestMessage(digest, new Date('2026-07-02T02:00:00Z'), inputs);
     assert.match(msg, /&lt;test&gt;/); // HTML is escaped
+    assert.match(msg, /Macro is driving, crypto is the passenger/);
+    assert.match(msg, /Market check\./);
+    assert.match(msg, /Counterpoint\./);
+    assert.match(msg, /medium conviction/);
+    assert.match(msg, /flows · high impact/);
+    assert.match(msg, /What to watch next/);
+    assert.match(msg, /<pre>/); // positioning grid, not per-coin prose
+    assert.match(msg, /Fear &amp; Greed 12/);
     assert.match(msg, /One thing to learn today/);
     assert.ok(msg.length < 4096, 'must fit a single Telegram message');
+  });
+
+  test('digest message degrades cleanly without inputs or narrative', () => {
+    const msg = formatDigestMessage(
+      { market_pulse: 'Quiet.', top_stories: [], watch_next: [], learn_today: 'Patience.' },
+      new Date('2026-07-02T02:00:00Z')
+    );
+    assert.match(msg, /Quiet\./);
+    assert.doesNotMatch(msg, /<pre>/);
+    assert.doesNotMatch(msg, /\n\n\n/); // no blank-line pileup from skipped blocks
   });
 });
