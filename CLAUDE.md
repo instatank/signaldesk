@@ -268,6 +268,40 @@ decision, not oversight**:
 - `config/macro-events.json` needs its yearly refresh when extending into
   2027 (currently covers through Dec 2026).
 
+**Briefing refinement SHIPPED 2026-08-09** (owner: too much Fear & Greed,
+too much coin-by-coin funding/OI prose the dashboard already shows, not
+enough real interpretation of the news). Governing decision: **the AI
+writes only what is judgement; everything that is arithmetic is rendered
+deterministically.** Don't reverse this — if a future stat can be derived
+from stored numbers, render it, don't ask Claude to describe it.
+
+- **Out of the Claude schema:** `positioning` (per-coin prose) and
+  `sentiment_note`. Positioning is now `buildPositioningGrid()` in
+  `lib/digest.js` — a monospace `<pre>` grid (funding-band emoji for
+  color, ▲/▼ for direction, a two-word flow tag from `oiPriceTag()` in
+  `lib/interpret.js`), shared by the AI message *and* the raw fallback so
+  the two can't disagree. Sentiment is one line: "Fear & Greed 42 · Fear".
+- **Into the schema:** a required `narrative` object — `headline`,
+  `synthesis` (4–6 sentences), `market_reaction`, `tension`, `conviction`
+  (high/medium/low) — plus `category`/`impact` per story and a
+  `watch_next` array. The schema is the main behavioral lever; keep
+  `market_reaction` and `tension` **required** or the model quietly stops
+  doing the cross-check and the steelman, which is the whole point.
+- **System prompt** gained a seven-step synthesis method (cluster
+  syndicated headlines → classify the pressure source → filter on whether
+  a story changes ownership/cost/access/trust → go second-order →
+  cross-examine the story against price/funding/OI → steelman → set
+  conviction honestly), plus an explicit scope rule: crypto-wide and macro,
+  name a coin only when the story is genuinely coin-specific and large.
+  No-predictions rules unchanged; quiet days must read as quiet.
+- `formatDigestMessage(digest, date, inputs)` takes a third arg now — the
+  raw inputs, for the grid + F&G/macro lines. Without it those blocks are
+  skipped (no crash).
+- **`app/components/BriefingBody.js`** is the single renderer for the full
+  briefing, used by `PulseHero` (so `/` and `/flash`) and `/archive`. It
+  still renders legacy `positioning`/`sentiment_note` when present so old
+  archived digests stay complete — leave that fallback in.
+
 Digest content/source refinement continues in parallel as the owner
 reports what he wants tuned.
 
