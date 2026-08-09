@@ -12,6 +12,7 @@ import {
   buildRawFallbackMessage,
   buildPositioningGrid,
   formatDigestMessage,
+  toneTally,
 } from '../lib/digest.js';
 
 const BTC = { symbol: 'BTC', binance: 'BTCUSDT', okx: 'BTC-USDT-SWAP', coingecko: 'bitcoin' };
@@ -225,6 +226,7 @@ describe('digest degradation (AI as optional layer)', () => {
         market_reaction: 'Price held while funding stayed flat — largely priced in.',
         tension: 'A hot CPI print would flip this read fast.',
         conviction: 'medium',
+        news_tone: 'risk-off',
       },
       top_stories: [
         {
@@ -233,6 +235,17 @@ describe('digest degradation (AI as optional layer)', () => {
           source: 'CoinDesk',
           category: 'flows',
           impact: 'high',
+          tone: 'bullish',
+          assets: ['BTC'],
+        },
+        {
+          summary: 'Bridge exploited',
+          why_it_matters: 'Liquidity leaves other bridges too',
+          source: 'The Block',
+          category: 'security',
+          impact: 'medium',
+          tone: 'bearish',
+          assets: [],
         },
       ],
       watch_next: ['Whether funding resets toward neutral'],
@@ -244,12 +257,24 @@ describe('digest degradation (AI as optional layer)', () => {
     assert.match(msg, /Market check\./);
     assert.match(msg, /Counterpoint\./);
     assert.match(msg, /medium conviction/);
-    assert.match(msg, /flows · high impact/);
+    assert.match(msg, /flows · high impact · BTC/); // asset chip only when specific
+    assert.match(msg, /security · medium impact\]/); // market-wide story stays unattributed
+    assert.match(msg, /news tone: risk-off/);
+    assert.match(msg, /🟢1 🔴1/); // tally counted from the story tones, not asked of the model
+    assert.match(msg, /1\. 🟢 ETF inflows/);
     assert.match(msg, /What to watch next/);
     assert.match(msg, /<pre>/); // positioning grid, not per-coin prose
     assert.match(msg, /Fear &amp; Greed 12/);
     assert.match(msg, /One thing to learn today/);
     assert.ok(msg.length < 4096, 'must fit a single Telegram message');
+  });
+
+  test('tone tally counts only labelled stories', () => {
+    assert.deepEqual(
+      toneTally([{ tone: 'bullish' }, { tone: 'bullish' }, { tone: 'mixed' }, {}, { tone: 'nope' }]),
+      { bullish: 2, bearish: 0, neutral: 0, mixed: 1 }
+    );
+    assert.deepEqual(toneTally(), { bullish: 0, bearish: 0, neutral: 0, mixed: 0 });
   });
 
   test('digest message degrades cleanly without inputs or narrative', () => {

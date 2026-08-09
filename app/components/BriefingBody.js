@@ -26,11 +26,33 @@ const CATEGORY_CLS = {
 
 const IMPACT_DOT = { high: 'text-red-400', medium: 'text-amber-400', low: 'text-zinc-600' };
 
-function SectionTitle({ children, className = 'text-zinc-500' }) {
+// Tone = what the story implies for the market, not how it was written.
+const TONE = {
+  bullish: { dot: 'text-emerald-400', label: 'bullish' },
+  bearish: { dot: 'text-red-400', label: 'bearish' },
+  neutral: { dot: 'text-zinc-500', label: 'neutral' },
+  mixed: { dot: 'text-amber-400', label: 'mixed' },
+};
+
+const NEWS_TONE_CLS = {
+  'risk-on': 'bg-emerald-500/10 text-emerald-400',
+  'risk-off': 'bg-red-500/10 text-red-400',
+  mixed: 'bg-amber-500/10 text-amber-400',
+  quiet: 'bg-zinc-700/40 text-zinc-400',
+};
+
+// Counting the model's tone labels is arithmetic, so it happens here
+// rather than being asked of the model.
+function toneTally(stories = []) {
+  const order = ['bullish', 'mixed', 'neutral', 'bearish'];
+  return order
+    .map((tone) => ({ tone, n: stories.filter((s) => s?.tone === tone).length }))
+    .filter((t) => t.n > 0);
+}
+
+function SectionTitle({ children, className = 'mb-2 text-zinc-500' }) {
   return (
-    <h3 className={`mb-2 text-xs font-semibold uppercase tracking-widest ${className}`}>
-      {children}
-    </h3>
+    <h3 className={`text-xs font-semibold uppercase tracking-widest ${className}`}>{children}</h3>
   );
 }
 
@@ -85,6 +107,19 @@ function Story({ s, i }) {
               {s.category}
             </span>
           )}
+          {s.assets?.slice(0, 2).map((a) => (
+            <span
+              key={a}
+              className="rounded-full bg-zinc-800 px-1.5 py-0.5 text-[10px] font-semibold text-zinc-300"
+            >
+              {a}
+            </span>
+          ))}
+          {TONE[s.tone] && (
+            <span className="text-[10px] uppercase tracking-wide text-zinc-500">
+              <span className={TONE[s.tone].dot}>●</span> {TONE[s.tone].label}
+            </span>
+          )}
           {s.impact && (
             <span className="text-[10px] uppercase tracking-wide text-zinc-500">
               <span className={IMPACT_DOT[s.impact] || 'text-zinc-600'}>●</span> {s.impact} impact
@@ -107,7 +142,23 @@ export default function BriefingBody({ digest, className = '' }) {
 
       {digest.top_stories?.length > 0 && (
         <div>
-          <SectionTitle>📰 What moved the tape</SectionTitle>
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <SectionTitle className="mb-0 text-zinc-500">📰 What moved the tape</SectionTitle>
+            {digest.narrative?.news_tone && (
+              <span
+                className={`rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${
+                  NEWS_TONE_CLS[digest.narrative.news_tone] || 'bg-zinc-800 text-zinc-400'
+                }`}
+              >
+                {digest.narrative.news_tone}
+              </span>
+            )}
+            {toneTally(digest.top_stories.slice(0, 5)).map(({ tone, n }) => (
+              <span key={tone} className="text-[10px] tabular-nums text-zinc-500">
+                <span className={TONE[tone].dot}>●</span> {n}
+              </span>
+            ))}
+          </div>
           <ol className="space-y-3">
             {digest.top_stories.slice(0, 5).map((s, i) => (
               <Story key={i} s={s} i={i} />
@@ -147,7 +198,7 @@ export default function BriefingBody({ digest, className = '' }) {
 
       {digest.learn_today && (
         <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/5 p-4">
-          <SectionTitle className="text-indigo-400">🎓 One thing to learn today</SectionTitle>
+          <SectionTitle className="mb-2 text-indigo-400">🎓 One thing to learn today</SectionTitle>
           <p className="text-zinc-200">{digest.learn_today}</p>
         </div>
       )}

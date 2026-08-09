@@ -283,10 +283,25 @@ from stored numbers, render it, don't ask Claude to describe it.
   the two can't disagree. Sentiment is one line: "Fear & Greed 42 · Fear".
 - **Into the schema:** a required `narrative` object — `headline`,
   `synthesis` (4–6 sentences), `market_reaction`, `tension`, `conviction`
-  (high/medium/low) — plus `category`/`impact` per story and a
-  `watch_next` array. The schema is the main behavioral lever; keep
+  (high/medium/low), `news_tone` (risk-on/risk-off/mixed/quiet) — plus
+  `category`/`impact`/`tone` and an optional `assets` array per story, and
+  a `watch_next` array. The schema is the main behavioral lever; keep
   `market_reaction` and `tension` **required** or the model quietly stops
   doing the cross-check and the steelman, which is the whole point.
+- **Headline tone scoring** (owner-requested 2026-08-09) is an LLM
+  judgement, not NLP: the prompt insists tone tracks *market implication*,
+  never the writing style ("emotive language is not bullish"), and that
+  `neutral` is a real answer. The per-story **tally** (`toneTally()` in
+  `lib/digest.js`) is counted from those labels rather than asked of the
+  model — same judgement-vs-arithmetic split as everything else. Note
+  `news_tone` covers the whole feed and may legitimately disagree with the
+  top-story tally.
+- **Coin attribution** (owner clarified 2026-08-09): the earlier "stay
+  generic" note was about avoiding a *systematic coin-by-coin walkthrough*,
+  not a ban. The prompt now defaults to crypto-wide/macro but explicitly
+  tells the model to name a coin (and fill `assets`) when the story is
+  genuinely specific and consequential. Don't re-tighten this to a blanket
+  prohibition.
 - **System prompt** gained a seven-step synthesis method (cluster
   syndicated headlines → classify the pressure source → filter on whether
   a story changes ownership/cost/access/trust → go second-order →
