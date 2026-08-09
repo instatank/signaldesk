@@ -5,7 +5,8 @@
 // flows, options, and 30-day character. Server components, zero JS.
 import { relativeTime } from '../../lib/dashboard.js';
 import { compactUsd } from '../../lib/advanced.js';
-import { Card, ChangeChip, Disclose, Explainer, Sparkline, TONE_CHIP, TONE_TEXT, Unavailable } from './ui.js';
+import { Card, ChangeChip, Disclose, Explainer, Footnote, Sparkline, TONE_CHIP, TONE_TEXT, Unavailable } from './ui.js';
+import { GUIDE_BY_KEY } from './advanceGuide.js';
 
 function SectionAge({ ts, now }) {
   if (!ts) return null;
@@ -13,18 +14,6 @@ function SectionAge({ ts, now }) {
 }
 
 // ---------------------------------------------------------------- crowd
-const CROWD_EXPLAINER = (
-  <>
-    <p className="mb-1 font-medium text-zinc-100">Long/short ratio — how is the crowd leaning?</p>
-    <p>
-      The ratio of accounts long vs short on perps (2.0 = twice as many longs). It counts
-      accounts, not position size, so it skews retail — which is the point: retail crowds long
-      near tops and capitulates near bottoms, so extremes read contrarian. Compare with funding:
-      when both scream &ldquo;crowded long,&rdquo; the squeeze risk is real.
-    </p>
-  </>
-);
-
 export function CrowdCard({ crowd, now }) {
   return (
     <Card
@@ -47,7 +36,7 @@ export function CrowdCard({ crowd, now }) {
                 </span>
               ))}
             </div>
-            <Explainer label="long/short ratio">{CROWD_EXPLAINER}</Explainer>
+            <Explainer label="long/short ratio">{GUIDE_BY_KEY.crowd.body}</Explainer>
           </div>
 
           <div className="mt-3 flex items-baseline justify-between gap-2 text-xs">
@@ -90,23 +79,12 @@ export function CrowdCard({ crowd, now }) {
           </Disclose>
         </>
       )}
+      <Footnote>{GUIDE_BY_KEY.crowd.one}</Footnote>
     </Card>
   );
 }
 
 // ---------------------------------------------------------------- depth
-const DEPTH_EXPLAINER = (
-  <>
-    <p className="mb-1 font-medium text-zinc-100">Order-book depth — where is the resting liquidity?</p>
-    <p>
-      USD sitting on the spot book within ±2% of price. More on the bid side = resting demand
-      below; more on the ask side = supply waiting above. Two honest caveats: this is a 15-minute
-      snapshot of a book that repaints in milliseconds, and big resting orders can be spoofed —
-      treat it as texture, never as a signal on its own.
-    </p>
-  </>
-);
-
 function DepthBar({ bidSharePct }) {
   return (
     <div className="relative h-2 w-full overflow-hidden rounded-full bg-red-500/25">
@@ -141,7 +119,7 @@ export function DepthCard({ depth, now }) {
                 </span>
               ))}
             </div>
-            <Explainer label="order-book depth">{DEPTH_EXPLAINER}</Explainer>
+            <Explainer label="order-book depth">{GUIDE_BY_KEY.depth.body}</Explainer>
           </div>
 
           <div className="mt-3">
@@ -181,24 +159,12 @@ export function DepthCard({ depth, now }) {
           </Disclose>
         </>
       )}
+      <Footnote>{GUIDE_BY_KEY.depth.one}</Footnote>
     </Card>
   );
 }
 
 // ---------------------------------------------------------------- flows
-const FLOWS_EXPLAINER = (
-  <>
-    <p className="mb-1 font-medium text-zinc-100">Money flows — is cash entering crypto rails?</p>
-    <p>
-      Stablecoins are crypto&rsquo;s cash balance: supply growing means money moved in and is
-      waiting to be deployed (&ldquo;dry powder&rdquo;); shrinking means money left entirely.
-      BTC dominance is BTC&rsquo;s share of the total market — rising dominance in a down market
-      is flight to quality inside crypto; falling dominance while prices rise usually means money
-      is rotating into alts.
-    </p>
-  </>
-);
-
 export function FlowsCard({ flows, now }) {
   const changeStat =
     flows?.totalChange24hPct != null
@@ -233,7 +199,7 @@ export function FlowsCard({ flows, now }) {
                 </div>
               </div>
             </div>
-            <Explainer label="money flows">{FLOWS_EXPLAINER}</Explainer>
+            <Explainer label="money flows">{GUIDE_BY_KEY.flows.body}</Explainer>
           </div>
 
           {flows.read && <p className="mt-3 text-xs text-zinc-500">{flows.read}</p>}
@@ -258,25 +224,12 @@ export function FlowsCard({ flows, now }) {
           )}
         </>
       )}
+      <Footnote>{GUIDE_BY_KEY.flows.one}</Footnote>
     </Card>
   );
 }
 
 // -------------------------------------------------------------- options
-const OPTIONS_EXPLAINER = (
-  <>
-    <p className="mb-1 font-medium text-zinc-100">Options — what is the smart money pricing in?</p>
-    <p>
-      DVOL is Deribit&rsquo;s implied-volatility index: the annualized move option prices expect
-      over the next 30 days (DVOL 50 ≈ ±2.6% expected daily swing). Compare it with realized vol —
-      implied far above realized means options are braced for a catalyst. The put/call ratio splits
-      open interest: puts are downside protection, calls are upside bets. Crypto normally runs
-      call-heavy, so put demand near parity is notable. BTC and ETH only — the coins with a liquid
-      listed options market.
-    </p>
-  </>
-);
-
 export function OptionsCard({ options, now }) {
   const statRow = options?.rows.find((r) => r.dvol != null);
   return (
@@ -323,7 +276,7 @@ export function OptionsCard({ options, now }) {
                 </div>
               ))}
             </div>
-            <Explainer label="options data">{OPTIONS_EXPLAINER}</Explainer>
+            <Explainer label="options data">{GUIDE_BY_KEY.options.body}</Explainer>
           </div>
 
           {options.rows[0]?.volGapRead && (
@@ -356,23 +309,12 @@ export function OptionsCard({ options, now }) {
           </Disclose>
         </>
       )}
+      <Footnote>{GUIDE_BY_KEY.options.one}</Footnote>
     </Card>
   );
 }
 
 // ------------------------------------------------------------ character
-const CHARACTER_EXPLAINER = (
-  <>
-    <p className="mb-1 font-medium text-zinc-100">30-day character — how does each coin trade?</p>
-    <p>
-      Realized volatility is how much a coin has actually been moving (annualized — higher means
-      bigger daily candles, so the same position size carries more risk). Correlation to BTC asks
-      whether the coin has its own story: near 1.0 it&rsquo;s a BTC trade in disguise; near 0 it
-      moves to its own news. Both are computed from the last 30 daily closes and refresh once a day.
-    </p>
-  </>
-);
-
 export function CharacterCard({ character, now }) {
   const maxVol = character ? Math.max(...character.rows.map((r) => r.realizedVolPct || 0), 1) : 1;
   return (
@@ -406,7 +348,7 @@ export function CharacterCard({ character, now }) {
                 </li>
               ))}
             </ul>
-            <Explainer label="volatility and correlation">{CHARACTER_EXPLAINER}</Explainer>
+            <Explainer label="volatility and correlation">{GUIDE_BY_KEY.character.body}</Explainer>
           </div>
           <p className="mt-2 flex justify-end gap-4 text-[10px] uppercase tracking-widest text-zinc-600">
             <span>realized vol</span>
@@ -435,6 +377,7 @@ export function CharacterCard({ character, now }) {
           </Disclose>
         </>
       )}
+      <Footnote>{GUIDE_BY_KEY.character.one}</Footnote>
     </Card>
   );
 }

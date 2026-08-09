@@ -9,11 +9,13 @@ import { fetchAllFeeds, urlHash, canonicalUrl } from '../lib/rss.js';
 import { interpretFunding, interpretOiPrice } from '../lib/interpret.js';
 import { isAuthorized } from '../lib/auth.js';
 import {
+  attachStoryLinks,
   buildRawFallbackMessage,
   buildPositioningGrid,
   formatDigestMessage,
   toneTally,
 } from '../lib/digest.js';
+import { toPromptPayload } from '../lib/claude.js';
 
 const BTC = { symbol: 'BTC', binance: 'BTCUSDT', okx: 'BTC-USDT-SWAP', coingecko: 'bitcoin' };
 
@@ -267,6 +269,49 @@ describe('digest degradation (AI as optional layer)', () => {
     assert.match(msg, /Fear &amp; Greed 12/);
     assert.match(msg, /One thing to learn today/);
     assert.ok(msg.length < 4096, 'must fit a single Telegram message');
+  });
+
+  test('story links resolve from headline_index, and only when valid', () => {
+    const src = {
+      headlines: [
+        { title: 'Real one', url: 'https://a.example/1' },
+        { title: 'No url', url: null },
+      ],
+    };
+    const out = attachStoryLinks(
+      {
+        top_stories: [
+          { summary: 'ok', headline_index: 0 },
+          { summary: 'headline has no url', headline_index: 1 },
+          { summary: 'out of range', headline_index: 47 },
+          { summary: 'negative', headline_index: -1 },
+          { summary: 'not an integer', headline_index: 1.5 },
+          { summary: 'missing entirely' },
+        ],
+      },
+      src
+    );
+    const links = out.top_stories.map((s) => s.url ?? null);
+    // Only the valid index links — a bad index must never produce a wrong link.
+    assert.deepEqual(links, ['https://a.example/1', null, null, null, null, null]);
+    assert.equal(out.top_stories[0].sourceTitle, 'Real one');
+
+    // Degenerate inputs are pass-throughs, not crashes.
+    assert.equal(attachStoryLinks(null, src), null);
+    assert.deepEqual(attachStoryLinks({ top_stories: [] }, src).top_stories, []);
+    assert.equal(attachStoryLinks({ top_stories: [{ summary: 'x', headline_index: 0 }] }, {})
+      .top_stories[0].url, undefined);
+  });
+
+  test('prompt payload indexes headlines and withholds their urls', () => {
+    const payload = toPromptPayload({
+      headlines: [{ title: 'A', source: 'S', url: 'https://a.example', recent: true }],
+      fearGreed: { value: 30 },
+    });
+    assert.equal(payload.headlines[0].i, 0);
+    assert.equal(payload.headlines[0].title, 'A');
+    assert.ok(!('url' in payload.headlines[0]), 'url must not reach the model');
+    assert.deepEqual(payload.fearGreed, { value: 30 }); // everything else passes through
   });
 
   test('tone tally counts only labelled stories', () => {

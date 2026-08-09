@@ -10,6 +10,7 @@ import { generateDigest, MODEL } from '../../../lib/claude.js';
 import { sendTelegramMessage } from '../../../lib/telegram.js';
 import {
   assembleDigestInputs,
+  attachStoryLinks,
   formatDigestMessage,
   buildRawFallbackMessage,
   istDateString,
@@ -40,7 +41,7 @@ export async function GET(request) {
   let aiError = null;
   for (let attempt = 0; attempt < 2 && !digest; attempt += 1) {
     try {
-      digest = await generateDigest(inputs);
+      digest = attachStoryLinks(await generateDigest(inputs), inputs);
     } catch (err) {
       aiError = String(err.message || err);
     }

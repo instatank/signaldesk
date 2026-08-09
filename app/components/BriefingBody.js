@@ -94,9 +94,30 @@ function Story({ s, i }) {
         {i + 1}
       </span>
       <div className="min-w-0">
-        <p className="text-zinc-200">
-          {s.summary} <span className="text-zinc-500">({s.source})</span>
-        </p>
+        {/* Links straight out to the source article, same as the news feed.
+            `url` is resolved server-side from the story's headline_index
+            (see attachStoryLinks) — absent on older stored digests, which
+            then render as plain text. */}
+        {s.url ? (
+          <a
+            href={s.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={s.sourceTitle || s.summary}
+            className="group/story block text-zinc-200 hover:text-sky-300"
+          >
+            <span className="underline decoration-zinc-700 underline-offset-2 group-hover/story:decoration-sky-400">
+              {s.summary}
+            </span>{' '}
+            <span className="whitespace-nowrap text-zinc-500 group-hover/story:text-sky-400">
+              ({s.source}) <span aria-hidden="true">↗</span>
+            </span>
+          </a>
+        ) : (
+          <p className="text-zinc-200">
+            {s.summary} <span className="text-zinc-500">({s.source})</span>
+          </p>
+        )}
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
           {s.category && (
             <span

@@ -340,6 +340,30 @@ miss, and the Flash button gave no sign it was working).
   running state, double-submit guard, full-row hit area at the right edge,
   hover tint, both themes). No bundle growth — the page is still 151 B.
 
+**Advance-page coaching + clickable stories SHIPPED 2026-08-09** (owner is
+a beginner reading advanced stats and wanted a refresher per section; also
+wanted briefing stories to open the source article).
+
+- **`app/components/advanceGuide.js` is the single source for all Advance
+  explanatory copy.** Each entry has `one` (a two-line grey footnote,
+  always visible under the card) and `body` (the full text, used by BOTH
+  the card's ⓘ popover and the "How to read this page" panel at the top of
+  `/advance`). The old per-card `*_EXPLAINER` constants are gone — add new
+  copy here or the three surfaces will drift. Both layers exist on purpose:
+  the owner had never found the ⓘ, so the footnote is the discoverable one.
+  `Footnote` lives in `ui.js` and renders even when a card's data is
+  unavailable.
+- **Briefing stories link to the source article.** The model never sees or
+  emits URLs — it sets `headline_index` (required) pointing at the `i` of
+  an input headline, and `attachStoryLinks()` in `lib/digest.js` resolves
+  that server-side to a URL. `toPromptPayload()` in `lib/claude.js` adds
+  the `i` and **strips `url`** from headlines before they reach Claude
+  (saves tokens; a URL it cannot see is a URL it cannot invent). Any index
+  that is missing, non-integer, negative or out of range yields no link
+  rather than a wrong one — keep that validation. Applied on both the
+  scheduled and flash paths. Old stored digests have no `url`, so
+  `BriefingBody` falls back to plain text.
+
 Digest content/source refinement continues in parallel as the owner
 reports what he wants tuned.
 

@@ -96,6 +96,18 @@ export function Chevron({ className = '' }) {
   );
 }
 
+// A quiet one-or-two-line refresher pinned to the bottom of a card: what
+// the stat is and how to read it. Advanced numbers are useless to a
+// beginner without this, and it should be readable without clicking
+// anything — the full version lives in the card's ⓘ and the page guide.
+export function Footnote({ children }) {
+  return (
+    <p className="mt-3 border-t border-zinc-800/70 pt-2.5 text-[11px] leading-relaxed text-zinc-500">
+      {children}
+    </p>
+  );
+}
+
 // Signed, colored 24h percentage chip. Green up, red down, gray flat.
 export function ChangeChip({ pct }) {
   if (pct == null || !Number.isFinite(pct)) {
