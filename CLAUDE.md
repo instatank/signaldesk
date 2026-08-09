@@ -317,6 +317,29 @@ from stored numbers, render it, don't ask Claude to describe it.
   still renders legacy `positioning`/`sentiment_note` when present so old
   archived digests stay complete — leave that fallback in.
 
+**Disclosure rows + Flash button feedback SHIPPED 2026-08-09** (owner: the
+small blue "Read the full briefing" / "All 60 headlines" links were easy to
+miss, and the Flash button gave no sign it was working).
+
+- `ROW_TAB` + `Chevron` in `app/components/ui.js` are now the shared look
+  for every second-level expander: full-width click target, hover tint,
+  chevron chip — the Card-header contract one level quieter. `Disclose`
+  and the news card's show-more/less/clear labels both use them, so new
+  expanders should too rather than rolling a bare text link. The news
+  footer's generated CSS switched `display:inline-flex` → `flex` to match.
+- `/flash` gained the app's **second** inline script (`TICK_SCRIPT` in
+  `app/flash/page.js`), same raw-HTML-no-client-component pattern as the
+  theme toggle. It does two things the server can't: a "⏳ Running…" button
+  state during the ~30–60s wait (with a double-submit guard), and a live
+  m:ss cooldown that re-enables the button at zero instead of freezing
+  until reload. Both are cosmetic — the form still works with JS off and
+  the cooldown is still enforced in the Firestore transaction. One form
+  now serves both states; `disabled:` Tailwind variants carry the look, so
+  the script only flips `disabled` and the label.
+- Verified in headless Chromium (20 checks: ticking, re-enable at zero,
+  running state, double-submit guard, full-row hit area at the right edge,
+  hover tint, both themes). No bundle growth — the page is still 151 B.
+
 Digest content/source refinement continues in parallel as the owner
 reports what he wants tuned.
 

@@ -8,10 +8,14 @@
 // read instead of the scheduled 12/24h one. The visuals are drawn from raw
 // Firestore numbers (SVG/CSS), so showing them costs zero extra AI tokens.
 //
-// Zero client JS, like every other page: the trigger is a plain HTML form
-// that POSTs to /api/flash and gets 303-redirected back here. During the
-// 10-minute cooldown the button is server-rendered disabled with a static
-// "available in ~Xm" label (reload to refresh the countdown — no ticking JS).
+// The trigger is a plain HTML form that POSTs to /api/flash and gets
+// 303-redirected back here — it works with JS off, and the 10-minute
+// cooldown is enforced server-side in a Firestore transaction regardless.
+//
+// This page carries the app's only other inline script (see TICK_SCRIPT
+// below), for the two things a static render genuinely cannot do: show a
+// "running" state during the ~30-60s wait, and tick the cooldown down live.
+// Both are cosmetic — nothing breaks if the script never runs.
 import sources from '../../config/sources.json';
 import macroCalendar from '../../config/macro-events.json';
 import { FLASH_RECENT_HOURS, FLASH_COOLDOWN_MS, getFlashLatest, formatCountdown } from '../../lib/flash.js';
@@ -66,7 +70,8 @@ function StatusBanner({ params, cooldown }) {
   if (params.cooldown) {
     return (
       <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 text-sm text-amber-300">
-        Just ran a flash — next one available in {formatCountdown(cooldown.remainingSec)}.
+        Just ran a flash — next one available in{' '}
+        <span className="sd-countdown tabular-nums">{formatCountdown(cooldown.remainingSec)}</span>.
       </div>
     );
   }
@@ -80,6 +85,33 @@ function StatusBanner({ params, cooldown }) {
   return null;
 }
 
+const READY_LABEL = '⚡ Run flash briefing';
+const READY_NOTE = `Pulls fresh data · takes ~30–60s · one per ${COOLDOWN_MIN} min`;
+
+// One button in one form for both states — `disabled:` variants carry the
+// look, so the tick script only ever flips `disabled` and the label. The
+// server still enforces the cooldown; this is presentation only.
+const BTN_CLASS =
+  'rounded-full bg-sky-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-500/20 transition-colors hover:bg-sky-400 disabled:cursor-not-allowed disabled:bg-zinc-800 disabled:text-zinc-500 disabled:shadow-none disabled:hover:bg-zinc-800';
+
+// Rendered as raw HTML so the inline `onsubmit` reaches the boot script
+// without a client component — same pattern as the header's theme toggle.
+function TriggerForm({ cooldown }) {
+  const until = cooldown.active ? Date.now() + cooldown.remainingSec * 1000 : 0;
+  const label = cooldown.active
+    ? `⚡ Available in ${formatCountdown(cooldown.remainingSec)}`
+    : READY_LABEL;
+  const note = cooldown.active ? `One flash per ${COOLDOWN_MIN} min` : READY_NOTE;
+  const html =
+    `<form method="post" action="/api/flash" class="flex flex-col items-center gap-1.5"` +
+    ` onsubmit="return window.__sdFlashRun&&window.__sdFlashRun(this)">` +
+    `<button type="submit" id="sd-flash-btn" data-until="${until}"${cooldown.active ? ' disabled' : ''}` +
+    ` class="${BTN_CLASS}">${label}</button>` +
+    `<span id="sd-flash-note" class="text-xs text-zinc-600">${note}</span>` +
+    `</form>`;
+  return <span className="contents" dangerouslySetInnerHTML={{ __html: html }} />;
+}
+
 function TriggerCard({ cooldown }) {
   return (
     <section className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 text-center sm:p-5">
@@ -90,30 +122,51 @@ function TriggerCard({ cooldown }) {
         {FLASH_RECENT_HOURS} hours. The snapshot below refreshes with it; your twice-daily 12h/24h
         briefing is unaffected.
       </p>
-      {cooldown.active ? (
-        <div className="flex flex-col items-center gap-1.5">
-          <button
-            disabled
-            className="cursor-not-allowed rounded-full bg-zinc-800 px-6 py-3 text-sm font-semibold text-zinc-500"
-          >
-            ⚡ Available in {formatCountdown(cooldown.remainingSec)}
-          </button>
-          <span className="text-xs text-zinc-600">One flash per {COOLDOWN_MIN} min · reload to refresh</span>
-        </div>
-      ) : (
-        <form method="post" action="/api/flash" className="flex flex-col items-center gap-1.5">
-          <button
-            type="submit"
-            className="rounded-full bg-sky-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-500/20 transition-colors hover:bg-sky-400"
-          >
-            ⚡ Run flash briefing
-          </button>
-          <span className="text-xs text-zinc-600">Pulls fresh data · takes ~30–60s · one per {COOLDOWN_MIN} min</span>
-        </form>
-      )}
+      <TriggerForm cooldown={cooldown} />
     </section>
   );
 }
+
+// The page's only client JS — a few hundred bytes inline, no bundle, no
+// hydration. Two jobs the server can't do, both purely cosmetic:
+//   1. Swap the button to a "running" state on submit, so the ~30-60s wait
+//      doesn't look like a dead click.
+//   2. Tick the cooldown down live and re-enable the button at zero,
+//      instead of a frozen number that only updates on reload.
+// If this script never runs, the page still works exactly as before.
+const TICK_SCRIPT = `(function(){
+  var B='sd-flash-btn',N='sd-flash-note',T=${JSON.stringify(READY_LABEL)},R=${JSON.stringify(READY_NOTE)};
+  function btn(){return document.getElementById(B)}
+  function note(){return document.getElementById(N)}
+  function pad(n){return (n<10?'0':'')+n}
+  function tick(){
+    var b=btn(); if(!b) return;
+    var until=+b.getAttribute('data-until')||0;
+    if(!until) return;
+    var s=Math.round((until-Date.now())/1000);
+    if(s<=0){
+      b.setAttribute('data-until','0'); b.disabled=false; b.textContent=T;
+      var n=note(); if(n) n.textContent=R;
+      document.querySelectorAll('.sd-countdown').forEach(function(el){el.textContent='now'});
+      return;
+    }
+    var txt=Math.floor(s/60)+':'+pad(s%60);
+    b.textContent='⚡ Available in '+txt;
+    document.querySelectorAll('.sd-countdown').forEach(function(el){el.textContent=txt});
+  }
+  window.__sdFlashRun=function(f){
+    if(f.dataset.busy) return false;      // guard the double-click
+    f.dataset.busy='1';
+    var b=btn();
+    if(b){ b.setAttribute('aria-busy','true'); b.classList.add('pointer-events-none','opacity-75');
+           b.textContent='⏳ Running… pulling fresh data'; }
+    var n=note(); if(n) n.textContent='Takes ~30–60s. Keep this tab open.';
+    return true;
+  };
+  // Back/forward cache can restore the "running" state — reset it.
+  window.addEventListener('pageshow',function(e){if(e.persisted) location.reload()});
+  tick(); setInterval(tick,1000);
+})();`;
 
 export default async function FlashPage({ searchParams }) {
   const now = new Date();
@@ -168,6 +221,8 @@ export default async function FlashPage({ searchParams }) {
       <footer className="mt-8 pb-4 text-center text-xs text-zinc-700">
         Informs, never advises. No signals, no predictions.
       </footer>
+
+      <script dangerouslySetInnerHTML={{ __html: TICK_SCRIPT }} />
     </main>
   );
 }

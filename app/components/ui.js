@@ -58,17 +58,41 @@ export function Unavailable({ what }) {
   return <p className="py-6 text-center text-sm text-zinc-600">{what} unavailable right now.</p>;
 }
 
-// The second disclosure layer: an inline expand link inside a card body.
+// The second disclosure layer: an expand row inside a card body. The whole
+// row is the click target with a hover tint and a chevron chip — the same
+// contract as the Card header, one level quieter. (It used to be just the
+// small blue label, which was an easy target to miss.)
 // Named group so it never cross-triggers nested group styles.
 export function Disclose({ label, closeLabel = 'Collapse', className = '', children }) {
   return (
     <details className={`group/d ${className}`}>
-      <summary className="cursor-pointer list-none text-sm text-sky-400 hover:text-sky-300 [&::-webkit-details-marker]:hidden">
-        <span className="group-open/d:hidden">{label} ↓</span>
-        <span className="hidden group-open/d:inline">{closeLabel} ↑</span>
+      <summary className={`${ROW_TAB} text-sky-400 hover:text-sky-300 [&::-webkit-details-marker]:hidden`}>
+        <span>
+          <span className="group-open/d:hidden">{label}</span>
+          <span className="hidden group-open/d:inline">{closeLabel}</span>
+        </span>
+        <Chevron className="group-open/d:rotate-180" />
       </summary>
       {children}
     </details>
+  );
+}
+
+// Shared look for every full-width "click anywhere on this row" control:
+// the Disclose summary and the news card's show-more/less/clear labels.
+// The negative margin lets the hover tint bleed to the card's padding edge
+// so the highlight reads as a full row, not a floating pill.
+export const ROW_TAB =
+  '-mx-2 flex cursor-pointer list-none select-none items-center justify-between gap-3 rounded-lg px-2 py-2 text-sm transition-colors hover:bg-zinc-800/60';
+
+export function Chevron({ className = '' }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-[10px] leading-none text-zinc-300 transition-transform ${className}`}
+    >
+      ▼
+    </span>
   );
 }
 

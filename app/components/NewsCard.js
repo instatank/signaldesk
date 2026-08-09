@@ -9,7 +9,7 @@
 // plus an "all" default) driven entirely by a generated `:checked ~`
 // stylesheet. No hydration, no event handlers, works with JS disabled.
 import { hourlyNewsVolume, relativeTime, topicBreakdown } from '../../lib/dashboard.js';
-import { Card, Unavailable } from './ui.js';
+import { Card, Chevron, ROW_TAB, Unavailable } from './ui.js';
 
 const VISIBLE = 5;
 const FRESH_MS = 2 * 60 * 60 * 1000;
@@ -171,7 +171,7 @@ function filterCss(keys) {
     `.nfoot .ctl-clear,.nfoot .ctl-less,.nfoot .fi{display:none}`,
     // "Everything" state: show all, swap the footer toggle.
     `#nf-every:checked ~ .nfoot .ctl-more{display:none}`,
-    `#nf-every:checked ~ .nfoot .ctl-less{display:inline-flex}`,
+    `#nf-every:checked ~ .nfoot .ctl-less{display:flex}`,
     // Deselect layer is dormant until its bar becomes the active filter.
     `.np .npdesel{display:none}`,
   ];
@@ -191,7 +191,7 @@ function filterCss(keys) {
     rules.push(`#nf-${k}:checked ~ .np .npdesel-${k}{display:block}`);
     // Swap footer to the clear control and reveal this filter's label.
     rules.push(`#nf-${k}:checked ~ .nfoot .ctl-more{display:none}`);
-    rules.push(`#nf-${k}:checked ~ .nfoot .ctl-clear{display:inline-flex}`);
+    rules.push(`#nf-${k}:checked ~ .nfoot .ctl-clear{display:flex}`);
     rules.push(`#nf-${k}:checked ~ .nfoot .fi-${k}{display:inline}`);
   }
   return rules.join('\n');
@@ -235,23 +235,29 @@ export default function NewsCard({ headlines, now }) {
             ))}
           </ul>
 
-          <div className="nfoot mt-2 flex items-center gap-3 border-t border-zinc-800 pt-2 text-sm">
+          {/* Each control is a full-width clickable row (same contract as
+              Disclose); the generated CSS shows exactly one at a time. */}
+          <div className="nfoot mt-2 border-t border-zinc-800 pt-2">
             {headlines.length > VISIBLE && (
-              <label htmlFor="nf-every" className="ctl-more cursor-pointer text-sky-400 hover:text-sky-300">
-                All {headlines.length} headlines ↓
+              <label htmlFor="nf-every" className={`ctl-more ${ROW_TAB} text-sky-400 hover:text-sky-300`}>
+                <span>All {headlines.length} headlines</span>
+                <Chevron />
               </label>
             )}
-            <label htmlFor="nf-all" className="ctl-less cursor-pointer text-sky-400 hover:text-sky-300">
-              Show fewer ↑
+            <label htmlFor="nf-all" className={`ctl-less ${ROW_TAB} text-sky-400 hover:text-sky-300`}>
+              <span>Show fewer</span>
+              <Chevron className="rotate-180" />
             </label>
-            <label htmlFor="nf-all" className="ctl-clear cursor-pointer items-center gap-1.5 text-zinc-400 hover:text-zinc-200">
-              <span className="text-zinc-500">Showing</span>
-              {entries.map((e) => (
-                <span key={e.key} className={`fi fi-${e.key} font-medium text-zinc-200`}>
-                  {e.label}
-                </span>
-              ))}
-              <span className="text-xs text-sky-400">✕ clear</span>
+            <label htmlFor="nf-all" className={`ctl-clear ${ROW_TAB} text-zinc-400 hover:text-zinc-200`}>
+              <span className="flex flex-wrap items-center gap-1.5">
+                <span className="text-zinc-500">Showing</span>
+                {entries.map((e) => (
+                  <span key={e.key} className={`fi fi-${e.key} font-medium text-zinc-200`}>
+                    {e.label}
+                  </span>
+                ))}
+              </span>
+              <span className="shrink-0 text-xs text-sky-400">✕ clear</span>
             </label>
           </div>
 
