@@ -13,8 +13,10 @@ import {
   buildRawFallbackMessage,
   buildPositioningGrid,
   formatDigestMessage,
+  sharesSubstance,
   toneTally,
 } from '../lib/digest.js';
+import { verifyFigures } from '../lib/verify.js';
 import { toPromptPayload } from '../lib/claude.js';
 
 const BTC = { symbol: 'BTC', binance: 'BTCUSDT', okx: 'BTC-USDT-SWAP', coingecko: 'bitcoin' };
@@ -312,6 +314,86 @@ describe('digest degradation (AI as optional layer)', () => {
     assert.equal(payload.headlines[0].title, 'A');
     assert.ok(!('url' in payload.headlines[0]), 'url must not reach the model');
     assert.deepEqual(payload.fearGreed, { value: 30 }); // everything else passes through
+  });
+
+  test('grounding check passes figures that came from the data', () => {
+    const src = {
+      prices: { BTC: { usd: 95000, change24hPct: 2.4 } },
+      derivatives: { BTC: { fundingRate: 0.0007, oiChange24hPct: 4.2 } },
+      fearGreed: { value: 12, last7Days: [] },
+      headlines: [{ title: 'Bridge exploited for $40m in largest hack of the year' }],
+    };
+    const clean = verifyFigures(
+      {
+        market_pulse: 'BTC up 2.4% on the day.',
+        narrative: {
+          synthesis: 'Funding sits at 0.07% and open interest rose 4.2%.',
+          market_reaction: 'A $40m exploit barely dented it.',
+        },
+        top_stories: [{ summary: 'Price near $95,000', why_it_matters: 'Round number' }],
+      },
+      src
+    );
+    assert.deepEqual(clean.unverified, [], 'sourced figures must not be flagged');
+    assert.ok(clean.checked >= 5, `should have inspected several figures (${clean.checked})`);
+
+    // Rounding the model does naturally must still pass.
+    assert.deepEqual(
+      verifyFigures({ market_pulse: 'up 2.4%, funding 0.07%, $95k' }, src).unverified,
+      []
+    );
+  });
+
+  test('grounding check flags figures that came from nowhere', () => {
+    const src = {
+      prices: { BTC: { usd: 95000, change24hPct: 2.4 } },
+      headlines: [{ title: 'Bridge exploited' }], // note: no size given
+    };
+    const out = verifyFigures(
+      {
+        market_pulse: 'BTC fell 37% overnight.',
+        narrative: { synthesis: 'The $40m exploit was the third this month.' },
+        // learn_today is exempt — illustrative numbers are legitimate there.
+        learn_today: 'DVOL 50 implies roughly a 2.6% daily swing.',
+      },
+      src
+    );
+    assert.deepEqual(out.unverified.sort(), ['$40m', '37%'].sort());
+  });
+
+  test('grounding check de-dupes and handles empty input', () => {
+    const src = { prices: {}, headlines: [] };
+    const out = verifyFigures(
+      { market_pulse: 'down 12%', narrative: { synthesis: 'still down 12% and 12%' } },
+      src
+    );
+    assert.deepEqual(out.unverified, ['12%'], 'a repeated bad figure is one problem');
+    assert.deepEqual(verifyFigures(null, src), { checked: 0, unverified: [] });
+    assert.deepEqual(verifyFigures({ market_pulse: 'no figures here' }, src).unverified, []);
+  });
+
+  test('story links are withheld when the summary does not match the headline', () => {
+    const src = {
+      headlines: [
+        { title: 'Spot bitcoin ETFs log fourth straight day of inflows', url: 'https://x/1' },
+        { title: 'Solana validator client ships upgrade', url: 'https://x/2' },
+      ],
+    };
+    const out = attachStoryLinks(
+      {
+        top_stories: [
+          // Reworded but genuinely the same story — must still link.
+          { summary: 'ETF inflows extend a fourth day', headline_index: 0 },
+          // Points at an unrelated headline — must NOT link.
+          { summary: 'Federal Reserve officials harden their rate language', headline_index: 1 },
+        ],
+      },
+      src
+    );
+    assert.equal(out.top_stories[0].url, 'https://x/1');
+    assert.equal(out.top_stories[1].url, undefined);
+    assert.equal(sharesSubstance('ETF inflows extend a fourth day', src.headlines[0].title), true);
+    assert.equal(sharesSubstance('totally unrelated words', 'nothing in common'), false);
   });
 
   test('tone tally counts only labelled stories', () => {

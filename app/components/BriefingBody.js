@@ -83,7 +83,27 @@ function Narrative({ n }) {
           <span className="font-medium text-zinc-300">Counterpoint.</span> {n.tension}
         </p>
       )}
+      {/* Shows the working behind the conviction chip, so the reader can
+          judge the judgement instead of taking it on trust. */}
+      {n.conviction_basis && (
+        <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
+          <span className="uppercase tracking-wide">Why that confidence:</span> {n.conviction_basis}
+        </p>
+      )}
     </div>
+  );
+}
+
+// Advisory grounding flag from lib/verify.js — every percentage and dollar
+// figure in the briefing is matched back against the input data.
+function GroundingNote({ check }) {
+  if (!check?.unverified?.length) return null;
+  return (
+    <p className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-300">
+      ⚠️ {check.unverified.length} figure{check.unverified.length === 1 ? '' : 's'} in this
+      briefing ({check.unverified.join(', ')}) could not be matched to the source data. Treat
+      {check.unverified.length === 1 ? ' it' : ' them'} as unverified.
+    </p>
   );
 }
 
@@ -159,6 +179,7 @@ export default function BriefingBody({ digest, className = '' }) {
   if (!digest) return null;
   return (
     <div className={`space-y-5 text-sm leading-relaxed ${className}`}>
+      <GroundingNote check={digest.check} />
       {digest.narrative && <Narrative n={digest.narrative} />}
 
       {digest.top_stories?.length > 0 && (

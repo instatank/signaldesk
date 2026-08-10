@@ -364,6 +364,46 @@ wanted briefing stories to open the source article).
   scheduled and flash paths. Old stored digests have no `url`, so
   `BriefingBody` falls back to plain text.
 
+**Anti-hallucination guardrails SHIPPED 2026-08-10** (owner: with this much
+subjectivity in the briefing, it's hard to tell high-quality signal from
+confident AI slop — "quality is paramount, even if it means less depth").
+Governing principle: **the synthesis can't be validated automatically, but
+the hard facts underneath it can be** — so validate those in code and make
+the model's confidence auditable.
+
+- **Prompt** gained an `EPISTEMIC DISCIPLINE` section (the most important
+  one): a three-tier fact / attributed-claim / inference rule with required
+  hedging on inferences; a ban on inventing any specific (number, date,
+  name, ticker, institution) not in the input; no invented causation
+  ("alongside", not "because"); no fabricated history ("largest since
+  March"); don't stretch one syndicated wire story into "reports"; and
+  explicit permission for `top_stories` to hold 2, 1 or 0 entries. Also a
+  `BEFORE YOU EMIT` self-check. Step 4 (second-order) got a leash — it was
+  the biggest fabrication vector the earlier refinement introduced.
+- **`conviction_basis`** is now a required schema field: one sentence of
+  working, naming the evidence AND what couldn't be verified. Rendered
+  under the narrative. `high` conviction now has a hard bar (3+ independent
+  stories AND market corroboration).
+- **`inputs.dataQuality`** (in `assembleDigestInputs`) counts headlines,
+  recent headlines and distinct sources, and sets `thin`. The model reads
+  real counts instead of guessing its evidence base; the prompt keys the
+  conviction bar off it.
+- **`lib/verify.js` → `verifyFigures()`** is the deterministic check: every
+  percentage and dollar amount in the AI's prose must match a figure from
+  the input (prices, funding, OI, F&G, or a number quoted in a headline),
+  with tolerance for rounding. `learn_today` is exempt (illustrative
+  numbers are legitimate). Result is stored as `digest.check` and surfaced
+  as an amber note on the page and a line in Telegram. **Advisory only —
+  it never blocks or edits the briefing.**
+- **`sharesSubstance()`** guards story links: the summary and the resolved
+  headline must share a substantive word, else no link. A link to the wrong
+  article costs more trust than a missing one.
+
+Ideas deliberately NOT built yet (discussed with the owner): a second
+"critic" Claude pass (doubles cost), a thumbs-up/down feedback loop stored
+in Firestore for tracking quality over time, and auto-downgrading
+conviction when `dataQuality.thin` contradicts it.
+
 Digest content/source refinement continues in parallel as the owner
 reports what he wants tuned.
 

@@ -18,6 +18,7 @@ import {
 } from '../../../lib/digest.js';
 import sources from '../../../config/sources.json';
 import macroCalendar from '../../../config/macro-events.json';
+import { verifyFigures } from '../../../lib/verify.js';
 import { withCors } from '../../../lib/cors.js';
 
 export const dynamic = 'force-dynamic';
@@ -42,6 +43,8 @@ export async function GET(request) {
   for (let attempt = 0; attempt < 2 && !digest; attempt += 1) {
     try {
       digest = attachStoryLinks(await generateDigest(inputs), inputs);
+      // Advisory only — annotates the briefing, never blocks it.
+      digest.check = verifyFigures(digest, inputs);
     } catch (err) {
       aiError = String(err.message || err);
     }
