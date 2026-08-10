@@ -20,6 +20,7 @@ import {
   getSnapshot,
   SNAPSHOT_VERSION,
 } from '../lib/snapshot.js';
+import { isAuthorized, isSnapshotAuthorized } from '../lib/auth.js';
 
 // IST is UTC+05:30, so 07:00 IST = 01:30 UTC and 19:00 IST = 13:30 UTC.
 // Helper: build the UTC instant for an IST wall-clock time.
@@ -393,5 +394,33 @@ describe('getSnapshot — reads bounded at or before the slot', () => {
     const snap = await getSnapshot(db, { slot, instrument: 'BTC', assets });
     assert.equal(snap.topHeadline, null);
     assert.equal(snap.btc.price, 71000); // the rest survived
+  });
+});
+
+describe('snapshot auth — its own key, not the cron key', () => {
+  const makeRequest = (auth) =>
+    new Request('https://x.example/api/snapshot', { headers: auth ? { authorization: auth } : {} });
+
+  test('accepts SNAPSHOT_TOKEN and rejects missing or wrong tokens', () => {
+    process.env.SNAPSHOT_TOKEN = 'snap-secret';
+    assert.equal(isSnapshotAuthorized(makeRequest('Bearer snap-secret')), true);
+    assert.equal(isSnapshotAuthorized(makeRequest('Bearer wrong')), false);
+    assert.equal(isSnapshotAuthorized(makeRequest('snap-secret')), false); // no scheme
+    assert.equal(isSnapshotAuthorized(makeRequest(null)), false);
+  });
+
+  test('rejects everything when no token is configured (feature simply off)', () => {
+    delete process.env.SNAPSHOT_TOKEN;
+    assert.equal(isSnapshotAuthorized(makeRequest('Bearer anything')), false);
+  });
+
+  test('CRON_SECRET does not open the snapshot, and vice versa', () => {
+    process.env.CRON_SECRET = 'cron-secret';
+    process.env.SNAPSHOT_TOKEN = 'snap-secret';
+    // TradeGenie holding the snapshot token must not be able to trigger a digest.
+    assert.equal(isAuthorized(makeRequest('Bearer snap-secret')), false);
+    assert.equal(isSnapshotAuthorized(makeRequest('Bearer cron-secret')), false);
+    delete process.env.CRON_SECRET;
+    delete process.env.SNAPSHOT_TOKEN;
   });
 });
