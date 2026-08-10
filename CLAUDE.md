@@ -263,8 +263,9 @@ decision, not oversight**:
   spans a second app outside this repo.
 - Coin-list expansion to top 10 (P1) was declined by the owner 2026-07-07.
 - The PRD §8 X follow-list dashboard link was deliberately dropped in
-  `PHASE2_DASHBOARD_PROMPT.md` ("keep footer minimal"); the list itself is
-  manual curation by the owner, nothing to build.
+  `PHASE2_DASHBOARD_PROMPT.md` ("keep footer minimal"). **Superseded
+  2026-08-09** — the owner supplied his list and it shipped as a card (see
+  below).
 - `config/macro-events.json` needs its yearly refresh when extending into
   2027 (currently covers through Dec 2026).
 
@@ -364,6 +365,32 @@ wanted briefing stories to open the source article).
   scheduled and flash paths. Old stored digests have no `url`, so
   `BriefingBody` falls back to plain text.
 
+**Follow list SHIPPED 2026-08-09** (owner supplied his own list, closing
+PRD §8 — which had been dropped in the Phase-2 design record). Governing
+decision: **link out, never ingest.** X API access is paid and scraping it
+breaks constantly; the PRD's "manual curation, not scraped in v1" still
+holds. If the owner ever asks for real ingestion, that's a new RSS-style
+source in `config/sources.json`, not a change to this card.
+
+- `config/follows.json` is owner-editable (handles stored **without** the
+  `@`, notes included). `lib/follows.js` **derives** each profile URL from
+  the `platform` field (`x` | `truthsocial`) rather than storing it, and
+  drops any entry with a bad handle or unknown platform — a wrong link is
+  worse than a missing one. Add a platform there, not in the component.
+- `FollowsCard` is the first card to use `Card`'s new `open={false}` prop:
+  it's static reference material, so it stays folded to one row and the
+  10-second read is untouched. Use `open={false}` only for reference —
+  live data must stay readable without a click.
+- It renders **outside** the `!data` branch in `app/page.js`, so the list
+  is still there when Firestore is down (that's exactly when you want the
+  speed layer). Each row carries a one-line "how to read it" note per the
+  "every number must teach" principle; `inDigest: true` badges the two
+  accounts (CoinDesk, The Block) already ingested via RSS.
+- Verified in headless Chromium, 24 checks across both themes (folded
+  default, exact hrefs incl. Trump on Truth Social, full-row hit area,
+  contrast). Tests in `tests/follows.test.mjs` assert the shipped config
+  survives shaping — a typo'd handle fails CI rather than shipping.
+
 **Anti-hallucination guardrails SHIPPED 2026-08-10** (owner: with this much
 subjectivity in the briefing, it's hard to tell high-quality signal from
 confident AI slop — "quality is paramount, even if it means less depth").
@@ -452,6 +479,7 @@ rationale, condensed here)
 | `app/archive/page.js` | Digest archive (P1) |
 | `config/sources.json` | RSS feeds, asset mappings, advanced-API endpoints — edit here, not in code |
 | `config/macro-events.json` | FOMC/CPI calendar — owner-editable, needs a yearly refresh |
+| `config/follows.json` + `lib/follows.js` | Curated X / Truth Social follow list (PRD §8) — links out, never ingested |
 | `tests/pipeline.test.mjs` | Offline tests (mocked fetch) — failover, dead-feed, auth, degraded-digest paths |
 | `tests/advanced.test.mjs` | Offline tests for the advanced layer: math, shaping, failover, macro window |
 | `scripts/verify-sources.mjs` | Live source health check (now incl. advanced endpoints) — run outside the sandbox |

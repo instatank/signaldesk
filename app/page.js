@@ -3,11 +3,14 @@
 // revalidates every 5 minutes — an honest pace for 15-minute data.
 import sources from '../config/sources.json';
 import macroCalendar from '../config/macro-events.json';
+import followList from '../config/follows.json';
 import { getDashboardData } from '../lib/dashboard.js';
 import { upcomingMacroEvents } from '../lib/macro.js';
+import { countFollows, shapeFollowGroups } from '../lib/follows.js';
 import PulseHero from './components/PulseHero.js';
 import PositioningCard from './components/PositioningCard.js';
 import NewsCard from './components/NewsCard.js';
+import FollowsCard from './components/FollowsCard.js';
 import SiteHeader from './components/SiteHeader.js';
 
 export const revalidate = 300;
@@ -27,6 +30,7 @@ export default async function Home() {
   const now = new Date();
   const { data, error } = await loadData(now);
   const macroEvents = upcomingMacroEvents(macroCalendar.events, now);
+  const followGroups = shapeFollowGroups(followList);
 
   return (
     <main className="mx-auto max-w-5xl p-4 sm:p-6">
@@ -54,6 +58,12 @@ export default async function Home() {
           </div>
         </div>
       )}
+
+      {/* Static reference, so it renders even when Firestore is down — the
+          speed layer is exactly what you want when the dashboard is blind. */}
+      <div className="mt-4">
+        <FollowsCard groups={followGroups} count={countFollows(followGroups)} />
+      </div>
 
       <footer className="mt-8 pb-4 text-center text-xs text-zinc-700">
         Informs, never advises. No signals, no predictions.

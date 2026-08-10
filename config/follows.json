@@ -1,0 +1,61 @@
+{
+  "note": "Owner-editable follow list (PRD §8). Manual curation — nothing here is scraped or ingested; the card just links out. Handles are stored WITHOUT the leading @; profile URLs are derived from `platform` in lib/follows.js so a typo can't point at the wrong account. Supported platforms: \"x\", \"truthsocial\". X accounts decay — re-check this list every few months.",
+  "groups": [
+    {
+      "name": "Crypto newsfeed",
+      "blurb": "The speed layer. SignalDesk ingests on a 15-minute cycle, which is fine for a swing read and useless in the first ten minutes of a hack, a listing or a Fed headline. That is what these are for.",
+      "accounts": [
+        {
+          "handle": "DeItaone",
+          "name": "Walter Bloomberg",
+          "platform": "x",
+          "note": "Relays newswire macro headlines within seconds, all-caps, no analysis. The fastest macro on this list — but it is a relay, so the headline lands before anyone has checked the context."
+        },
+        {
+          "handle": "TreeNewsFeed",
+          "name": "Tree News",
+          "platform": "x",
+          "note": "Crypto-native breaking-news bot: listings, hacks, filings, often minutes ahead of the newsrooms. Raw and unfiltered — expect the occasional false alarm and correction."
+        },
+        {
+          "handle": "tradfi",
+          "name": "TradFi",
+          "platform": "x",
+          "note": "Traditional-finance headlines and market chatter — the macro backdrop crypto trades against. Read it for what stocks and rates are reacting to, not for crypto calls."
+        },
+        {
+          "handle": "realDonaldTrump",
+          "name": "Donald Trump",
+          "platform": "truthsocial",
+          "note": "Primary source, not a news account — tariffs, Fed pressure and crypto policy get posted here first and move markets directly. The market's reaction is the data; the claim itself is politics."
+        },
+        {
+          "handle": "zoomerfied",
+          "name": "Zoomerfied",
+          "platform": "x",
+          "note": "Fast crypto commentary and aggregation. A personality account, so treat a post as a lead to verify — never as confirmation on its own."
+        },
+        {
+          "handle": "CoinDesk",
+          "name": "CoinDesk",
+          "platform": "x",
+          "note": "Established newsroom: slower, but checked before it publishes. Already feeding your briefing via RSS, so following on X only buys you speed.",
+          "inDigest": true
+        },
+        {
+          "handle": "TheBlockCo",
+          "name": "The Block",
+          "platform": "x",
+          "note": "Research-grade crypto reporting, same role as CoinDesk. Already in your briefing via RSS — X adds speed, not new coverage.",
+          "inDigest": true
+        },
+        {
+          "handle": "WatcherGuru",
+          "name": "Watcher.Guru",
+          "platform": "x",
+          "note": "Very fast, very high volume, very low filter. Read the headlines and skip the takes — this account rewards a quick scan and punishes a deep read."
+        }
+      ]
+    }
+  ]
+}
