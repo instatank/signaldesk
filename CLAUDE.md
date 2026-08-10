@@ -1,8 +1,10 @@
 # CLAUDE.md — SignalDesk
 
 Read this before doing anything else in this repo. It's the current-state
-handoff; `SIGNALDESK_PRD.md` is the full product spec and `SETUP.md` is the
-owner's manual setup checklist. Keep all three in sync with reality as the
+handoff; `SIGNALDESK_PRD.md` is the full product spec, `SETUP.md` is the
+owner's manual setup checklist, and `TRADEGENIE_BRIDGE.md` is the design
+record for the cross-app bridge (spans a second repo — read it before
+touching anything bridge-related). Keep them in sync with reality as the
 project moves — this file especially, since it's the first thing a new
 session reads.
 
@@ -260,7 +262,9 @@ decision, not oversight**:
   netflows (CryptoQuant), whale alerts — await an owner budget decision;
   listed in the `/advance` footer.
 - The TradeGenie bridge (PRD §6 P2) is explicitly deferred by the PRD and
-  spans a second app outside this repo.
+  spans a second app outside this repo. **Owner approved it 2026-08-10** —
+  scoped in `TRADEGENIE_BRIDGE.md`, not yet built. Read that file before
+  touching anything bridge-related; it's the design record for both repos.
 - Coin-list expansion to top 10 (P1) was declined by the owner 2026-07-07.
 - The PRD §8 X follow-list dashboard link was deliberately dropped in
   `PHASE2_DASHBOARD_PROMPT.md` ("keep footer minimal"). **Superseded
@@ -430,6 +434,31 @@ Ideas deliberately NOT built yet (discussed with the owner): a second
 "critic" Claude pass (doubles cost), a thumbs-up/down feedback loop stored
 in Firestore for tracking quality over time, and auto-downgrading
 conviction when `dataQuality.thin` contradicts it.
+
+## Next up (approved by the owner 2026-08-10, not yet built)
+
+**1. Tree News as a real ingested source.** The owner confirmed he follows
+`https://news.treeofalpha.com/` and that its feed is free — so unlike the
+rest of the follow list, this one graduates from "link out" to a real
+source. It's the fastest crypto-native breaking-news feed on the list, so
+it materially improves both the news card and the briefing.
+- **Blocker:** the sandbox cannot reach it (proxy returns 403 on CONNECT
+  to `news.treeofalpha.com`, confirmed 2026-08-10), so the response shape
+  can't be inspected from a Claude session. It is **JSON, not RSS**, so it
+  needs its own fetcher in `lib/rss.js` (or a sibling), not a new entry in
+  the `feeds` array — do not just add the URL to `config/sources.json` and
+  assume `rss-parser` will cope.
+- **Unblock it by** asking the owner to paste one raw response, then write
+  the parser against that. Failing that, write a tolerant parser (accept
+  `{title|body|suggestions}`, ISO or epoch `time`), ship it behind the
+  existing per-feed error tolerance so a wrong guess degrades instead of
+  breaking ingest, and verify with `npm run verify:sources` after deploy.
+- Keep the dedupe path: Tree News often carries the same story as the
+  newsrooms minutes earlier, so it should dedupe by normalized title like
+  every other source, not create twins in the digest.
+
+**2. The TradeGenie bridge** — see `TRADEGENIE_BRIDGE.md`. Needs both repos
+in the session.
 
 Digest content/source refinement continues in parallel as the owner
 reports what he wants tuned.
