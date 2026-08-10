@@ -1,9 +1,37 @@
 # TradeGenie Bridge — design + build plan
 
-Status: **scoped, not built.** Owner approved 2026-08-10 ("nice, clean
-linkage… basic bridging to start"). This is the design record and the
+Status: **Phase A BUILT 2026-08-10.** Owner approved it the same day ("nice,
+clean linkage… basic bridging to start"). This is the design record and the
 step-by-step plan; it spans **two repos**, so it lives here and is mirrored
 by a pointer in TradeGenie's `AGENTS.md`.
+
+**What shipped** (steps 1–7 below, one commit each, in both repos):
+
+| | |
+|---|---|
+| SignalDesk | `lib/snapshot.js` (slot resolver + shaping), `GET /api/snapshot`, `SNAPSHOT_TOKEN`, 41 offline tests in `tests/snapshot.test.mjs` |
+| TradeGenie | `lib/market-context.ts` (2s-capped client), `Trade.marketContext`, wired into all three save paths, read-only panel on `/trades/[id]` |
+
+**Owner action still required:** generate one token
+(`openssl rand -hex 32`) and set it in **both** Vercel projects —
+`SNAPSHOT_TOKEN` in signaldesk, `SIGNALDESK_SNAPSHOT_TOKEN` (plus
+`SIGNALDESK_SNAPSHOT_URL`) in TradeGenie. Until then the bridge is off and
+both apps behave exactly as before: trades simply save with no context.
+
+Three things to know before changing any of it:
+
+- **The at-or-before rule is the load-bearing part.** It lives in
+  `resolveSlot()` in `lib/snapshot.js` and nowhere else. TradeGenie sends a
+  timestamp (`?at=`), never a slot it computed itself — one implementation,
+  one place to get it right, one place that is tested.
+- **The bridge is never load-bearing.** Every failure mode — SignalDesk down,
+  slow, misconfigured, returning junk — ends in `marketContext: null` and a
+  saved trade. If a change to either side could make a trade save fail, the
+  change is wrong.
+- **An all-null snapshot is deliberately not stored.** SignalDesk answers 200
+  with null sections when its own Firestore is down, so a reply can be
+  well-formed and carry nothing. Storing it would mark the trade as "has
+  context" and hide it from the Phase B backfill.
 
 Closes PRD §6 P2 ("Link/bridge into TradeGenie"), the last unbuilt item on
 the SignalDesk roadmap.

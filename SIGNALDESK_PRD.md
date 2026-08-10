@@ -103,7 +103,12 @@ OI interpretation (shown as 24h delta + price direction combo):
 ### P2 — gated on demonstrated need + budget decision
 - Liquidation data + long/short ratios (requires Coinglass Hobbyist, $29/mo — decide only after v1 habit is proven).
 - Exchange netflow / stablecoin supply (CryptoQuant free tier, manual first).
-- Link/bridge into TradeGenie: attach a "market context snapshot" (funding, F&G, top headline) to each journal entry. **This is the eventual killer feature connecting the two apps — but explicitly deferred.**
+- ✅ **SHIPPED 2026-08-10 (Phase A).** Link/bridge into TradeGenie: attach a
+  "market context snapshot" (funding, F&G, top headline) to each journal
+  entry. Built as `GET /api/snapshot` — TradeGenie fetches once when a trade
+  is saved and freezes the answer onto the trade. Keyed to the briefing slot
+  in effect at entry, at-or-before. See `TRADEGENIE_BRIDGE.md`; the analysis
+  layer that makes it a killer feature is Phase B and is not built yet.
 
 ---
 

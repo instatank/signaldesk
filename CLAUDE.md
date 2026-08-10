@@ -435,6 +435,36 @@ Ideas deliberately NOT built yet (discussed with the owner): a second
 in Firestore for tracking quality over time, and auto-downgrading
 conviction when `dataQuality.thin` contradicts it.
 
+**TradeGenie bridge — Phase A SHIPPED 2026-08-10** (PRD §6 P2, the last
+unbuilt roadmap item). Read `TRADEGENIE_BRIDGE.md` before touching any of
+it — it spans both repos and carries the reasoning. In short: when a trade
+is saved in TradeGenie, it fetches a small frozen snapshot of the market and
+staples it onto the trade forever.
+
+- **`GET /api/snapshot`** (`app/api/snapshot/route.js`) is the whole contract.
+  `?at=<ISO instant>` (the trade's entry time), `?instrument=`, or an
+  explicit `?date=&slot=`. Reads only what Firestore already holds — no
+  upstream fetching, so it is fast and free, and it can serve any past slot.
+- **Its own secret: `SNAPSHOT_TOKEN`**, never `CRON_SECRET`
+  (`isSnapshotAuthorized` in `lib/auth.js`). TradeGenie must not hold the key
+  that can trigger digests. Unset = the bridge is simply off.
+- **`lib/snapshot.js` owns the one comparison that matters.** `resolveSlot()`
+  returns the briefing slot AT OR BEFORE an instant — a 06:00 IST trade maps
+  to the *previous* evening's 19:00, never forward to the 07:00 published an
+  hour later. Mapping a trade to a briefing that did not exist yet is
+  lookahead bias. Every read is bounded at or before the slot instant, and a
+  missing digest walks BACKWARDS, reporting which slot it actually used.
+  Never add a "nearest slot" or "latest available" shortcut here.
+- **It never throws.** Any internal failure returns 200 with null sections;
+  only a malformed query parameter gets a 400. The trade is already saving —
+  a half-empty snapshot beats none, and a day+slot key makes a missed capture
+  recoverable later.
+- Funding/OI reads come from `lib/interpret.js` + `lib/dashboard.js`, so the
+  snapshot can never disagree with the dashboard or that morning's briefing.
+- Phase B (backfill, then grouped analysis in TradeGenie) is **not** built and
+  is deliberately not this build. If a change here starts growing an analysis
+  screen, stop.
+
 ## Next up (approved by the owner 2026-08-10, not yet built)
 
 **1. Tree News as a real ingested source.** The owner confirmed he follows
@@ -457,8 +487,10 @@ it materially improves both the news card and the briefing.
   newsrooms minutes earlier, so it should dedupe by normalized title like
   every other source, not create twins in the digest.
 
-**2. The TradeGenie bridge** — see `TRADEGENIE_BRIDGE.md`. Needs both repos
-in the session.
+**2. The TradeGenie bridge Phase B** — backfill existing trades, then the
+grouped analysis on TradeGenie's `/analytics`. Phase A shipped (see above);
+Phase B needs both repos in the session and ~30 context-carrying trades
+before the analysis says anything true. See `TRADEGENIE_BRIDGE.md`.
 
 Digest content/source refinement continues in parallel as the owner
 reports what he wants tuned.
@@ -475,9 +507,11 @@ rationale, condensed here)
    call once, then falls back to `buildRawFallbackMessage()` — the pipeline
    must never go silent because Anthropic had a bad day. Preserve this
    property in any change to `lib/claude.js` or `lib/digest.js`.
-3. **All secrets server-side only.** Never let any of the 5 secrets reach
-   a client bundle. Cron endpoints (`/api/ingest`, `/api/digest`) must keep
-   checking `Authorization: Bearer $CRON_SECRET` via `lib/auth.js`.
+3. **All secrets server-side only.** Never let any of the 5 secrets (6 with
+   the optional `SNAPSHOT_TOKEN`) reach a client bundle. Cron endpoints
+   (`/api/ingest`, `/api/digest`) must keep checking
+   `Authorization: Bearer $CRON_SECRET` via `lib/auth.js`; `/api/snapshot`
+   checks its own token, deliberately a different one.
 4. **Region pinned to `sin1`** in `vercel.json` — required for Binance
    access (geo-blocks US IPs) and is why the Binance→OKX adapter in
    `lib/derivatives.js` exists at all. Don't remove either without cause.
@@ -490,6 +524,8 @@ rationale, condensed here)
 | `app/api/digest/route.js` | Daily cron: assemble 24h (+ macro events) → Claude → Firestore → Telegram |
 | `app/api/flash/route.js` | On-demand: cooldown-gated PUBLIC endpoint → lean ingest + 4h flash digest → `flash/latest` |
 | `lib/flash.js` | Flash: cooldown math, lean ingest, `runFlash` orchestrator, `flash/latest` reader |
+| `app/api/snapshot/route.js` | TradeGenie bridge: token-gated read-only market snapshot for a trade's entry slot |
+| `lib/snapshot.js` | Bridge: `resolveSlot()` (at-or-before, the no-lookahead rule) + payload shaping |
 | `app/flash/page.js` | The Flash page (button + last real-time reaction read) |
 | `app/api/screener/route.js` | Daily cron: build the screener (Binance futures) → `screener/latest` |
 | `app/api/screener/refresh/route.js` | Public cooldown-gated REFRESH → rebuild screener now |
