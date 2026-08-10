@@ -93,6 +93,34 @@ Now deploy:
    | `CRON_SECRET` | your random string |
    | `FIREBASE_SERVICE_ACCOUNT` | the whole JSON file contents (paste it all — multi-line is fine) |
 
+   There is a **6th, optional** one — `SNAPSHOT_TOKEN` — needed only if you
+   want the TradeGenie bridge (see below). Everything else works without it.
+
+### Optional — `SNAPSHOT_TOKEN` (the TradeGenie bridge)
+
+This turns on `GET /api/snapshot`, which lets TradeGenie staple a frozen
+snapshot of the market onto every trade you log. It is off until you set
+it, and nothing else changes if you never do.
+
+1. Generate one more secret: `openssl rand -hex 32`. Use a **different**
+   value from `CRON_SECRET` — this key lives in the other app, and it
+   should never be able to trigger a digest.
+2. Add it to **this** project (Vercel → signaldesk → Settings →
+   Environment Variables) as `SNAPSHOT_TOKEN`.
+3. Add the **same value** to the **TradeGenie** Vercel project as
+   `SIGNALDESK_SNAPSHOT_TOKEN`, plus `SIGNALDESK_SNAPSHOT_URL` set to
+   `https://signaldesk-tawny.vercel.app/api/snapshot`.
+4. Redeploy both (or just push — env changes need a new deployment to take
+   effect).
+
+To check it by hand once deployed:
+```
+curl -H "Authorization: Bearer $SNAPSHOT_TOKEN" \
+  "https://signaldesk-tawny.vercel.app/api/snapshot?instrument=BTC"
+```
+You should get JSON with `marketDate`, `slot` (`07` or `19`), and the
+market sections. Without the header you get `401`.
+
 5. Click **Deploy**. Wait ~2 minutes for the green confetti.
 6. Note your deployment URL, e.g. `https://signaldesk-xyz.vercel.app`.
 
