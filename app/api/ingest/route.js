@@ -5,7 +5,8 @@
 import { NextResponse } from 'next/server';
 import { isAuthorized } from '../../../lib/auth.js';
 import { getDb } from '../../../lib/firestore.js';
-import { fetchAllFeeds } from '../../../lib/rss.js';
+import { collectHeadlines, fetchAllFeeds } from '../../../lib/rss.js';
+import { fetchTreeNews } from '../../../lib/tree-news.js';
 import { fetchAllDerivatives } from '../../../lib/derivatives.js';
 import { fetchFearGreed } from '../../../lib/fng.js';
 import { fetchPrices } from '../../../lib/prices.js';
@@ -19,6 +20,7 @@ import {
 } from '../../../lib/advanced.js';
 import { refreshScreenerPrices } from '../../../lib/screener-live.js';
 import sources from '../../../config/sources.json';
+import follows from '../../../config/follows.json';
 import { withCors } from '../../../lib/cors.js';
 
 export const dynamic = 'force-dynamic';
@@ -38,8 +40,9 @@ export async function GET(request) {
   const startedAt = new Date();
   const errors = [];
 
-  // All four fetch groups run in parallel; each failure is contained.
-  const [rssResult, derivResult, fngResult, pricesResult] = await Promise.allSettled([
+  // All five fetch groups run in parallel; each failure is contained.
+  const [treeResult, rssResult, derivResult, fngResult, pricesResult] = await Promise.allSettled([
+    fetchTreeNews(sources.treeNews, follows, sources.feeds),
     fetchAllFeeds(sources.feeds),
     fetchAllDerivatives(sources.assets),
     fetchFearGreed(sources.fearGreedUrl),
@@ -49,11 +52,18 @@ export async function GET(request) {
   const db = getDb();
 
   // --- Headlines: dedupe by URL hash (doc id = sha256 of canonical URL).
+  // Tree News is listed FIRST on purpose: it carries the newsrooms' stories
+  // minutes ahead of their own feeds, and collectHeadlines keeps the earlier
+  // entry when two streams resolve to the same document.
   let newHeadlines = 0;
   let duplicateHeadlines = 0;
-  if (rssResult.status === 'fulfilled') {
-    errors.push(...rssResult.value.errors.map((e) => ({ stream: 'rss', ...e })));
-    const writes = rssResult.value.items.map(async (item) => {
+  const headlines = collectHeadlines([
+    ['tree-news', treeResult],
+    ['rss', rssResult],
+  ]);
+  errors.push(...headlines.errors);
+  await Promise.all(
+    headlines.items.map(async (item) => {
       try {
         // create() fails if the doc exists — that IS the dedupe.
         await db.collection('headlines').doc(item.id).create({
@@ -62,20 +72,18 @@ export async function GET(request) {
           source: item.source,
           publishedAt: item.publishedAt,
           ingestedAt: startedAt,
+          via: item.via ?? null,
         });
         newHeadlines += 1;
       } catch (err) {
         if (err.code === 6 /* ALREADY_EXISTS */) {
           duplicateHeadlines += 1;
         } else {
-          errors.push({ stream: 'rss-write', error: String(err.message || err) });
+          errors.push({ stream: 'headline-write', error: String(err.message || err) });
         }
       }
-    });
-    await Promise.all(writes);
-  } else {
-    errors.push({ stream: 'rss', error: String(rssResult.reason?.message || rssResult.reason) });
-  }
+    }),
+  );
 
   // --- Metrics snapshot: one doc per run with whatever streams succeeded.
   const derivatives = derivResult.status === 'fulfilled' ? derivResult.value.data : null;

@@ -17,6 +17,13 @@
     { "symbol": "HYPE", "binance": "HYPEUSDT", "okx": "HYPE-USDT-SWAP", "coingecko": "hyperliquid" },
     { "symbol": "VVV", "binance": "VVVUSDT", "okx": "VVV-USDT-SWAP", "coingecko": "venice-token" }
   ],
+  "treeNews": {
+    "name": "Tree News",
+    "url": "https://news.treeofalpha.com/api/news",
+    "socialFollowsOnly": true,
+    "maxItems": 80,
+    "maxTitleChars": 300
+  },
   "fearGreedUrl": "https://api.alternative.me/fng/?limit=30",
   "coingeckoPriceUrl": "https://api.coingecko.com/api/v3/simple/price",
   "advanced": {
