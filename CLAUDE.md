@@ -1,3 +1,5 @@
+Before any work in this repo: run git fetch && git status. If behind origin/main, pull and npm install before proceeding. Report if diverged.
+
 # CLAUDE.md — SignalDesk
 
 Read this before doing anything else in this repo. It's the current-state
