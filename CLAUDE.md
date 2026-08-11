@@ -513,32 +513,51 @@ staples it onto the trade forever.
   is deliberately not this build. If a change here starts growing an analysis
   screen, stop.
 
-## Next up (approved by the owner 2026-08-10, not yet built)
+**Tree News SHIPPED 2026-08-11** (the owner confirmed he follows
+`news.treeofalpha.com` and that it is free, so this one account graduates
+from the "link out, never ingest" rule to a real source). It is JSON, not
+RSS, so it has its own fetcher — `lib/tree-news.js` — rather than another
+entry in the `feeds` array. Shape confirmed from a live response the owner
+pasted; `tests/tree-news.test.mjs` uses those exact items as its fixture, so
+that file IS the spec (the sandbox still cannot reach the host).
 
-**1. Tree News as a real ingested source.** The owner confirmed he follows
-`https://news.treeofalpha.com/` and that its feed is free — so unlike the
-rest of the follow list, this one graduates from "link out" to a real
-source. It's the fastest crypto-native breaking-news feed on the list, so
-it materially improves both the news card and the briefing.
-- **Blocker:** the sandbox cannot reach it (proxy returns 403 on CONNECT
-  to `news.treeofalpha.com`, confirmed 2026-08-10), so the response shape
-  can't be inspected from a Claude session. It is **JSON, not RSS**, so it
-  needs its own fetcher in `lib/rss.js` (or a sibling), not a new entry in
-  the `feeds` array — do not just add the URL to `config/sources.json` and
-  assume `rss-parser` will cope.
-- **Unblock it by** asking the owner to paste one raw response, then write
-  the parser against that. Failing that, write a tolerant parser (accept
-  `{title|body|suggestions}`, ISO or epoch `time`), ship it behind the
-  existing per-feed error tolerance so a wrong guess degrades instead of
-  breaking ingest, and verify with `npm run verify:sources` after deploy.
-- Keep the dedupe path: Tree News often carries the same story as the
-  newsrooms minutes earlier, so it should dedupe by normalized title like
-  every other source, not create twins in the digest.
+Three decisions govern it; changing any of them changes what the briefing
+believes:
 
-**2. The TradeGenie bridge Phase B** — backfill existing trades, then the
-grouped analysis on TradeGenie's `/analytics`. Phase A shipped (see above);
-Phase B needs both repos in the session and ~30 context-carrying trades
-before the analysis says anything true. See `TRADEGENIE_BRIDGE.md`.
+- **Social posts are gated by `config/follows.json`.** Tree News relays all
+  of crypto Twitter, merch giveaways included. Rather than invent a quality
+  score (this codebase counts, it never scores), a post is kept only if its
+  handle is already on the owner's own follow list — curation he did himself,
+  edited in a file he already owns, and it covers Truth Social too. The gate
+  keys off the URL host, not Tree News's `source` label, so a new relay type
+  can't slip past it. `socialFollowsOnly: false` in `config/sources.json`
+  turns the filter off. **Non-social items are never gated** — an exchange
+  halting deposits is market-moving by definition.
+- **`source` names the original publisher, never the relay.** The conviction
+  bar counts DISTINCT SOURCES, so a Tree News copy of a CoinDesk story must
+  collapse onto the same `CoinDesk` the RSS feed writes; otherwise one story
+  read twice looks like two independent confirmations. `buildPublisherMap()`
+  derives the mapping from the configured feed names + follow-list display
+  names, so there is no second list to keep in sync. Provenance is kept in a
+  separate `via` field that is neither rendered nor sent to Claude.
+- **Dedupe rides the existing rails, in both directions.** Doc ids are
+  already sha256 of the canonical URL and Tree News blog items carry the
+  publisher's real link, so the same story from both paths collides for free;
+  `collectHeadlines()` (`lib/rss.js`) lists Tree News FIRST so the earlier
+  copy wins — being minutes ahead is the entire point. For the case a URL
+  hash can't catch (same story, different link), the `"PUBLISHER: "` title
+  prefix is stripped so the title matches the newsroom's own wording, and
+  `assembleDigestInputs()` now dedupes by `titleKey()` before the model sees
+  anything. `titleKey()` lives in `lib/dashboard.js` and is THE title-identity
+  function — dashboard and digest both call it. Never add a second one; that
+  is the tag-tokenizer mistake in a new costume.
+
+Wired into `/api/ingest` **and** `leanIngest` (a flash is exactly when the
+fastest source matters most). `npm run verify:sources` now runs the real
+fetcher and reports how many items survive the filter, broken down by
+source — run it after deploy, since the sandbox 403s on everything.
+
+## Next up
 
 Digest content/source refinement continues in parallel as the owner
 reports what he wants tuned.
@@ -548,6 +567,7 @@ rationale, condensed here)
 
 1. **Minimal dependencies.** Currently: `next`, `react`/`react-dom` (peers),
    `tailwindcss` + `@tailwindcss/postcss`, `firebase-admin`, `rss-parser`.
+   (Tree News is JSON and uses plain `fetch` — it added no dependency.)
    Anthropic and Telegram are called via plain `fetch` — no SDKs. Anything
    beyond this list needs a one-line justification and should make you
    suspicious of yourself.
@@ -580,6 +600,7 @@ rationale, condensed here)
 | `lib/screener.js` | Screener: fetchers (batched) + all pure math + insights/summary + reader |
 | `lib/screener-live.js` | 15-min live-price overlay refresh (piggybacks on `/api/ingest`) |
 | `app/screener/page.js` + `[coin]/page.js` | Screener list (cards + zero-JS sort table) + per-coin detail |
+| `lib/tree-news.js` | Tree News JSON source: parser, follow-list social gate, publisher mapping |
 | `lib/derivatives.js` | Binance→OKX funding/OI adapter with silent failover |
 | `lib/advanced.js` | Advance-page data: long/short, depth, stablecoins, options, correlation rollup (fetchers + math + shaping) |
 | `lib/macro.js` | Upcoming-macro-events window over `config/macro-events.json` |
@@ -595,6 +616,7 @@ rationale, condensed here)
 | `config/follows.json` + `lib/follows.js` | Curated X / Truth Social follow list (PRD §8) — links out, never ingested |
 | `tests/pipeline.test.mjs` | Offline tests (mocked fetch) — failover, dead-feed, auth, degraded-digest paths |
 | `tests/advanced.test.mjs` | Offline tests for the advanced layer: math, shaping, failover, macro window |
+| `tests/tree-news.test.mjs` | Tree News: parsing/filtering/dedupe, fixtured on a real pasted response |
 | `scripts/verify-sources.mjs` | Live source health check (now incl. advanced endpoints) — run outside the sandbox |
 
 ## Working in this repo from a sandboxed Claude Code session

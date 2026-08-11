@@ -1,5 +1,5 @@
 {
-  "note": "Owner-editable follow list (PRD §8). Manual curation — nothing here is scraped or ingested; the card just links out. Handles are stored WITHOUT the leading @; profile URLs are derived from `platform` in lib/follows.js so a typo can't point at the wrong account. Supported platforms: \"x\", \"truthsocial\". X accounts decay — re-check this list every few months.",
+  "note": "Owner-editable follow list (PRD §8). Manual curation. The card links out; nothing here is scraped. TWO EXCEPTIONS that read this file rather than link from it: CoinDesk and The Block arrive via RSS, and Tree News is ingested directly — and this list doubles as the allowlist for the social posts Tree News relays, so adding a handle here is how you let that account into the briefing (see lib/tree-news.js). Handles are stored WITHOUT the leading @; profile URLs are derived from `platform` in lib/follows.js so a typo can't point at the wrong account. Supported platforms: \"x\", \"truthsocial\". X accounts decay — re-check this list every few months.",
   "groups": [
     {
       "name": "Crypto newsfeed",
@@ -15,7 +15,8 @@
           "handle": "TreeNewsFeed",
           "name": "Tree News",
           "platform": "x",
-          "note": "Crypto-native breaking-news bot: listings, hacks, filings, often minutes ahead of the newsrooms. Raw and unfiltered — expect the occasional false alarm and correction."
+          "note": "Crypto-native breaking-news bot: listings, hacks, filings, often minutes ahead of the newsrooms. Now INGESTED as a real source (news.treeofalpha.com) rather than just linked — exchange notices and blogs come in unfiltered, and its relayed social posts are filtered down to the accounts on this list.",
+          "inDigest": true
         },
         {
           "handle": "tradfi",

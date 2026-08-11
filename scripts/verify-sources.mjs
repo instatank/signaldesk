@@ -8,8 +8,10 @@
 // production runs from Singapore (sin1) and falls over to OKX anyway.
 import { readFileSync } from 'node:fs';
 import Parser from 'rss-parser';
+import { fetchTreeNews } from '../lib/tree-news.js';
 
 const sources = JSON.parse(readFileSync(new URL('../config/sources.json', import.meta.url)));
+const follows = JSON.parse(readFileSync(new URL('../config/follows.json', import.meta.url)));
 const parser = new Parser();
 
 let failures = 0;
@@ -38,6 +40,30 @@ for (const feed of sources.feeds) {
     ok(feed.name, `${count} items`);
   } catch (err) {
     bad(feed.name, err.message);
+  }
+}
+
+console.log('\nTree News (JSON, not RSS):');
+if (!sources.treeNews?.url) {
+  console.log('  – not configured');
+} else {
+  try {
+    // Run the real fetcher, not just a status check: what matters is how many
+    // items survive parsing AND the follow-list filter, since that is what
+    // actually reaches the briefing.
+    const { items, errors } = await fetchTreeNews(sources.treeNews, follows, sources.feeds);
+    for (const e of errors) bad(sources.treeNews.name, e.error);
+    if (!errors.length) {
+      if (items.length === 0) throw new Error('fetched but nothing survived parsing/filtering');
+      const bySource = items.reduce((acc, i) => ({ ...acc, [i.source]: (acc[i.source] || 0) + 1 }), {});
+      const newest = items.reduce((a, b) => (b.publishedAt > a.publishedAt ? b : a));
+      const ageMin = Math.round((Date.now() - newest.publishedAt) / 60000);
+      ok(sources.treeNews.name, `${items.length} items kept, newest ${ageMin}m old`);
+      console.log(`     by source: ${Object.entries(bySource).map(([s, n]) => `${s} ${n}`).join(' · ')}`);
+      console.log(`     newest: ${newest.title.slice(0, 90)}`);
+    }
+  } catch (err) {
+    bad(sources.treeNews.name, err.message);
   }
 }
 

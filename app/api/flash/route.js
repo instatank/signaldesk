@@ -8,6 +8,7 @@ import { getDb } from '../../../lib/firestore.js';
 import { acquireFlashSlot, runFlash } from '../../../lib/flash.js';
 import sources from '../../../config/sources.json';
 import macroCalendar from '../../../config/macro-events.json';
+import follows from '../../../config/follows.json';
 
 export const dynamic = 'force-dynamic';
 // Lean ingest (a few seconds) + one Claude call (≤60s). 120s is ample.
@@ -34,7 +35,7 @@ export async function POST(request) {
   }
 
   try {
-    const { degraded } = await runFlash(db, sources, macroCalendar.events, now);
+    const { degraded } = await runFlash(db, sources, macroCalendar.events, now, follows);
     return back(request, degraded ? { degraded: '1' } : { ran: '1' });
   } catch (err) {
     return back(request, { error: String(err?.message || err).slice(0, 120) });
