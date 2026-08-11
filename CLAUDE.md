@@ -435,6 +435,54 @@ Ideas deliberately NOT built yet (discussed with the owner): a second
 in Firestore for tracking quality over time, and auto-downgrading
 conviction when `dataQuality.thin` contradicts it.
 
+**Trust + teaching pass SHIPPED 2026-08-11** (owner ran the briefing past
+another model for critique and picked the suggestions he liked). Same
+governing split as before — **judgement from the model, arithmetic from the
+code** — so three of the five landed as deterministic rendering, not as new
+things to ask Claude for.
+
+- **Provenance line** — `buildProvenance()` + `provenanceText()` in
+  `lib/digest.js`, stored on the digest as `digest.meta` so the archive
+  shows the cutoff the reader saw on the day. "Data as of 07:00 IST · last
+  24h · 47 headlines from 7 sources · funding/OI via binance". Counted from
+  the assembled inputs, never asked of the model — a self-reported
+  confidence is the one number that can't be trusted. A failed stream shows
+  up as "no X data" rather than as silence, the Binance→OKX failover is
+  visible (the two measure different pools), and `dataQuality.thin` prints
+  as "thin flow". Top of the Telegram message (a frozen artifact read hours
+  later), footer of `BriefingBody` (the page already timestamps the hero).
+  The raw fallback carries it too.
+- **Per-story `status`** — required schema enum `confirmed` / `reported` /
+  `developing`, with the prompt's tie-break rule: when unsure, pick the LESS
+  settled label, and twenty outlets on one unnamed-sources claim is still
+  "reported". It's the three-tier fact/claim/inference rule made visible as
+  a chip, since the prose alone can't show it. Don't drop the "prose must
+  match the label" check in `BEFORE YOU EMIT` — the label is worthless if
+  the synthesis still treats a rumour as settled.
+- **`narrative.invalidation`** ("What would change this") is required and
+  deliberately SEPARATE from `tension`: tension is the argument against the
+  read, invalidation is the observable trigger. The prompt demands something
+  checkable ("unless CPI comes in hot"), explicitly bans unfalsifiable
+  phrasing ("unless sentiment shifts"), and the test is whether the reader
+  could say tomorrow whether it happened.
+- **`learn_today` is now `{ concept, question }`** — a mini-lesson ending in
+  one applied question (change a variable from today's case; no answer, no
+  options), because recall beats re-reading. Old digests stored a plain
+  string, so every renderer goes through `normalizeLearn()` — use it rather
+  than growing a second fallback.
+- **`beginner_trap`** is optional and deliberately occasional: twice a week,
+  morning run only, never on a flash. The cadence is arithmetic
+  (`shouldIncludeTrap()`, Mon/Thu before noon IST), passed to the model as
+  `inputs.teaching.includeTrap` — a model asked "is it time?" answers
+  inconsistently. A callout in every briefing stops being read.
+- **Telegram stories are now links** (`<a href>` from the same
+  `attachStoryLinks` resolution the dashboard uses) — the model still never
+  sees a URL. Verifying against the original reporting was the one feedback
+  item already half-built: the dashboard had links, Telegram didn't.
+- Colors: the trap card is pink, not rose — `rose` has no light-theme remap
+  in `globals.css`, and amber already means "check this data" (the grounding
+  note). Check that table before reaching for a new hue.
+
 **TradeGenie bridge — Phase A SHIPPED 2026-08-10** (PRD §6 P2, the last
 unbuilt roadmap item). Read `TRADEGENIE_BRIDGE.md` before touching any of
 it — it spans both repos and carries the reasoning. In short: when a trade

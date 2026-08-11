@@ -11,6 +11,7 @@ import { sendTelegramMessage } from '../../../lib/telegram.js';
 import {
   assembleDigestInputs,
   attachStoryLinks,
+  buildProvenance,
   formatDigestMessage,
   buildRawFallbackMessage,
   istDateString,
@@ -45,6 +46,9 @@ export async function GET(request) {
       digest = attachStoryLinks(await generateDigest(inputs), inputs);
       // Advisory only — annotates the briefing, never blocks it.
       digest.check = verifyFigures(digest, inputs);
+      // Cutoff + evidence base, stored with the digest so the archive shows
+      // the same provenance the reader saw on the day.
+      digest.meta = buildProvenance(inputs, now);
     } catch (err) {
       aiError = String(err.message || err);
     }

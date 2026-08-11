@@ -9,6 +9,8 @@
 // those. Digests stored before this change still carry `positioning` /
 // `sentiment_note`, so the archive keeps rendering them when present.
 
+import { normalizeLearn, provenanceText } from '../../lib/digest.js';
+
 const CONVICTION = {
   high: { label: 'high conviction', cls: 'bg-emerald-500/10 text-emerald-400' },
   medium: { label: 'medium conviction', cls: 'bg-amber-500/10 text-amber-400' },
@@ -32,6 +34,15 @@ const TONE = {
   bearish: { dot: 'text-red-400', label: 'bearish' },
   neutral: { dot: 'text-zinc-500', label: 'neutral' },
   mixed: { dot: 'text-amber-400', label: 'mixed' },
+};
+
+// How settled a story is. "reported" and "developing" are the ones that
+// need to catch the eye — a single-source claim read as fact is the most
+// expensive mistake a beginner can make with this feed.
+const STATUS = {
+  confirmed: { label: 'confirmed', cls: 'bg-zinc-800 text-zinc-400' },
+  reported: { label: 'reported · unconfirmed', cls: 'bg-amber-500/10 text-amber-300' },
+  developing: { label: 'developing', cls: 'bg-sky-500/10 text-sky-300' },
 };
 
 const NEWS_TONE_CLS = {
@@ -81,6 +92,15 @@ function Narrative({ n }) {
       {n.tension && (
         <p className="mt-1.5 border-l-2 border-amber-500/40 pl-2.5 text-xs text-zinc-400">
           <span className="font-medium text-zinc-300">Counterpoint.</span> {n.tension}
+        </p>
+      )}
+      {/* The read's off-switch: the observable that would make it wrong.
+          Separate from the counterpoint on purpose — one is the argument,
+          this is the trigger the reader can actually check later. */}
+      {n.invalidation && (
+        <p className="mt-1.5 border-l-2 border-violet-500/40 pl-2.5 text-xs text-zinc-400">
+          <span className="font-medium text-zinc-300">What would change this.</span>{' '}
+          {n.invalidation}
         </p>
       )}
       {/* Shows the working behind the conviction chip, so the reader can
@@ -139,6 +159,13 @@ function Story({ s, i }) {
           </p>
         )}
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
+          {STATUS[s.status] && (
+            <span
+              className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${STATUS[s.status].cls}`}
+            >
+              {STATUS[s.status].label}
+            </span>
+          )}
           {s.category && (
             <span
               className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
@@ -172,6 +199,43 @@ function Story({ s, i }) {
         </p>
       </div>
     </li>
+  );
+}
+
+// The compounding-education block. The question is the point: recall beats
+// re-reading, so the lesson ends with something the reader has to answer
+// himself. Archived digests store learn_today as a plain string —
+// normalizeLearn absorbs both shapes.
+function LearnCard({ learn }) {
+  const l = normalizeLearn(learn);
+  if (!l) return null;
+  return (
+    <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/5 p-4">
+      <SectionTitle className="mb-2 text-indigo-400">🎓 One thing to learn today</SectionTitle>
+      <p className="text-zinc-200">{l.concept}</p>
+      {l.question && (
+        <p className="mt-2.5 border-t border-indigo-500/20 pt-2.5 text-zinc-300">
+          <span className="text-xs font-semibold uppercase tracking-widest text-indigo-400">
+            Your turn
+          </span>
+          <br />
+          {l.question}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// What the briefing was actually built from, stated in the briefing itself
+// (see buildProvenance). Counted from the stored inputs, never claimed by
+// the model.
+function Provenance({ meta }) {
+  const text = provenanceText(meta);
+  if (!text) return null;
+  return (
+    <p className="border-t border-zinc-800 pt-3 text-[11px] leading-relaxed text-zinc-500">
+      {text}
+    </p>
   );
 }
 
@@ -238,12 +302,21 @@ export default function BriefingBody({ digest, className = '' }) {
       )}
       {digest.sentiment_note && <p className="text-zinc-300">🌡 {digest.sentiment_note}</p>}
 
-      {digest.learn_today && (
-        <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/5 p-4">
-          <SectionTitle className="mb-2 text-indigo-400">🎓 One thing to learn today</SectionTitle>
-          <p className="text-zinc-200">{digest.learn_today}</p>
+      <LearnCard learn={digest.learn_today} />
+
+      {/* Occasional by design (twice a week, morning only — see
+          shouldIncludeTrap in lib/digest.js). A callout in every briefing
+          stops being read. */}
+      {/* Pink, not amber: amber already means "check this data" (the grounding
+          note). This is a thinking error, not a data problem. */}
+      {digest.beginner_trap && (
+        <div className="rounded-xl border border-pink-500/30 bg-pink-500/5 p-4">
+          <SectionTitle className="mb-2 text-pink-300">🪤 Common beginner trap</SectionTitle>
+          <p className="text-zinc-200">{digest.beginner_trap}</p>
         </div>
       )}
+
+      <Provenance meta={digest.meta} />
     </div>
   );
 }

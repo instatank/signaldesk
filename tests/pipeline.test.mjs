@@ -10,10 +10,14 @@ import { interpretFunding, interpretOiPrice } from '../lib/interpret.js';
 import { isAuthorized } from '../lib/auth.js';
 import {
   attachStoryLinks,
+  buildProvenance,
   buildRawFallbackMessage,
   buildPositioningGrid,
   formatDigestMessage,
+  normalizeLearn,
+  provenanceText,
   sharesSubstance,
+  shouldIncludeTrap,
   toneTally,
 } from '../lib/digest.js';
 import { verifyFigures } from '../lib/verify.js';
@@ -228,7 +232,8 @@ describe('digest degradation (AI as optional layer)', () => {
         headline: 'Macro is driving, crypto is the passenger',
         synthesis: 'Every loud story this window came from rates, not from crypto itself.',
         market_reaction: 'Price held while funding stayed flat — largely priced in.',
-        tension: 'A hot CPI print would flip this read fast.',
+        tension: 'The rates story may already be fully priced.',
+        invalidation: 'A hot CPI print would flip this read fast.',
         conviction: 'medium',
         news_tone: 'risk-off',
       },
@@ -240,7 +245,9 @@ describe('digest degradation (AI as optional layer)', () => {
           category: 'flows',
           impact: 'high',
           tone: 'bullish',
+          status: 'confirmed',
           assets: ['BTC'],
+          url: 'https://a.example/etf',
         },
         {
           summary: 'Bridge exploited',
@@ -249,11 +256,16 @@ describe('digest degradation (AI as optional layer)', () => {
           category: 'security',
           impact: 'medium',
           tone: 'bearish',
+          status: 'reported',
           assets: [],
         },
       ],
       watch_next: ['Whether funding resets toward neutral'],
-      learn_today: 'Funding flipping negative while price holds often precedes squeezes.',
+      learn_today: {
+        concept: 'Funding flipping negative while price holds often precedes squeezes.',
+        question: 'If funding stayed positive while price fell, what would that suggest?',
+      },
+      beginner_trap: 'Trap: assuming an inflow day must lift price. Flows get absorbed.',
     };
     const msg = formatDigestMessage(digest, new Date('2026-07-02T02:00:00Z'), inputs);
     assert.match(msg, /&lt;test&gt;/); // HTML is escaped
@@ -265,12 +277,89 @@ describe('digest degradation (AI as optional layer)', () => {
     assert.match(msg, /security · medium impact\]/); // market-wide story stays unattributed
     assert.match(msg, /news tone: risk-off/);
     assert.match(msg, /🟢1 🔴1/); // tally counted from the story tones, not asked of the model
-    assert.match(msg, /1\. 🟢 ETF inflows/);
+    assert.match(msg, /1\. 🟢 <a href/);
     assert.match(msg, /What to watch next/);
     assert.match(msg, /<pre>/); // positioning grid, not per-coin prose
     assert.match(msg, /Fear &amp; Greed 12/);
     assert.match(msg, /One thing to learn today/);
+    // Accuracy layer: cutoff line, per-story settledness, the read's
+    // off-switch, and a clickable path back to the original reporting.
+    assert.match(msg, /Data as of \d\d:\d\d IST/);
+    assert.match(msg, /confirmed · flows/);
+    assert.match(msg, /reported — not confirmed · security/);
+    assert.match(msg, /What would change this\./);
+    assert.match(msg, /<a href="https:\/\/a\.example\/etf">ETF inflows<\/a>/);
+    // Learning layer: the question and the occasional trap.
+    assert.match(msg, /Your turn:/);
+    assert.match(msg, /what would that suggest\?/);
+    assert.match(msg, /Common beginner trap/);
     assert.ok(msg.length < 4096, 'must fit a single Telegram message');
+  });
+
+  test('provenance is counted from the inputs, never claimed', () => {
+    const meta = buildProvenance(
+      {
+        ...inputs,
+        generatedAt: '2026-07-02T02:00:00Z',
+        dataQuality: { headlineCount: 42, distinctSources: 6, windowHours: 24, thin: false },
+      },
+      new Date('2026-07-02T02:00:00Z')
+    );
+    assert.equal(meta.headlineCount, 42);
+    assert.equal(meta.sourceCount, 6);
+    assert.deepEqual(meta.derivativeSources, ['okx']); // the failover is visible
+    assert.deepEqual(meta.missing, []);
+    const text = provenanceText(meta);
+    assert.match(text, /Data as of 07:30 IST/); // 02:00 UTC = 07:30 IST
+    assert.match(text, /last 24h/);
+    assert.match(text, /42 headlines from 6 sources/);
+    assert.match(text, /funding\/OI via okx/);
+
+    // A failed stream is named, not silently dropped; a thin window says so.
+    const degraded = buildProvenance({
+      generatedAt: '2026-07-02T02:00:00Z',
+      headlines: [],
+      derivatives: {},
+      prices: null,
+      fearGreed: null,
+      dataQuality: { headlineCount: 0, distinctSources: 0, windowHours: 12, thin: true },
+    });
+    assert.deepEqual(degraded.missing, ['prices', 'funding/OI', 'Fear & Greed', 'news']);
+    assert.match(provenanceText(degraded), /no prices, funding\/OI, Fear & Greed, news data/);
+    assert.match(provenanceText(degraded), /thin flow/);
+    assert.equal(provenanceText(null), null);
+  });
+
+  test('the beginner trap runs twice a week, mornings only, never on flash', () => {
+    // 2026-08-10 is a Monday. 02:00 UTC = 07:30 IST (morning run).
+    const monMorning = new Date('2026-08-10T02:00:00Z');
+    const monEvening = new Date('2026-08-10T14:00:00Z'); // 19:30 IST
+    const thuMorning = new Date('2026-08-13T02:00:00Z');
+    const tueMorning = new Date('2026-08-11T02:00:00Z');
+    assert.equal(shouldIncludeTrap(monMorning), true);
+    assert.equal(shouldIncludeTrap(thuMorning), true);
+    assert.equal(shouldIncludeTrap(monEvening), false);
+    assert.equal(shouldIncludeTrap(tueMorning), false);
+    // A flash is a market reaction, not a lesson slot.
+    assert.equal(shouldIncludeTrap(monMorning, 'flash'), false);
+  });
+
+  test('learn_today renders from both the old string and the new object', () => {
+    assert.deepEqual(normalizeLearn('Old shape.'), { concept: 'Old shape.', question: null });
+    assert.deepEqual(normalizeLearn({ concept: 'New.', question: 'Why?' }), {
+      concept: 'New.',
+      question: 'Why?',
+    });
+    assert.equal(normalizeLearn(null), null);
+    assert.equal(normalizeLearn({ question: 'no concept' }), null);
+
+    // An archived digest (string learn_today, no meta) still renders whole.
+    const legacy = formatDigestMessage(
+      { market_pulse: 'Quiet.', learn_today: 'Patience compounds.' },
+      new Date('2026-07-02T02:00:00Z')
+    );
+    assert.match(legacy, /Patience compounds\./);
+    assert.doesNotMatch(legacy, /Your turn:/);
   });
 
   test('story links resolve from headline_index, and only when valid', () => {
