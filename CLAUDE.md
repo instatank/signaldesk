@@ -619,6 +619,15 @@ rationale, condensed here)
 | `tests/tree-news.test.mjs` | Tree News: parsing/filtering/dedupe, fixtured on a real pasted response |
 | `scripts/verify-sources.mjs` | Live source health check (now incl. advanced endpoints) — run outside the sandbox |
 
+## Working environment (read before giving instructions)
+
+This repo is built entirely in Claude Code cloud sessions — there is no local checkout, no local terminal, and no local dev environment for the owner. **Never hand him `cd` / `git clone` / `npm install` / `./script.sh` steps to run on his machine** — anything that must execute runs in the agent's own container, or in the deployed app.
+
+- **Egress is allowlisted** (see the sandbox note just below for the specifics of this repo). A host can fail with "Host not in allowlist" — that means blocked, not down. Say so and propose another route.
+- **No secrets store here** (Anthropic's own docs say not to put API keys in Claude Code cloud env vars). Secrets live in Vercel's env vars — never ask the owner to paste one into chat or a local file.
+- **Blocked host or needs real credentials?** Build it as a route in the deployed app and hand over a URL to open — not a script to run.
+- **Steps the owner performs are browser/dashboard steps** — name the site, the menu, the button.
+
 ## Working in this repo from a sandboxed Claude Code session
 
 This project has been built from a cloud sandbox whose outbound network is
