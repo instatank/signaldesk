@@ -1,8 +1,8 @@
 # SignalDesk
 
 A beginner trader's daily market intelligence system: three high-signal
-crypto data streams + one AI-written briefing, pushed to Telegram twice
-daily (07:00 and 19:00 IST), plus a zero-client-JS dashboard.
+crypto data streams + one AI-written briefing, pushed to Telegram once a
+day (07:00 IST), plus a zero-client-JS dashboard.
 
 All planned phases have shipped: the pipeline (Phase 1), the dashboard
 (Phase 2), the P1 fast-follows (archive, funding sparklines, macro-event
@@ -15,7 +15,7 @@ project state and handoff notes in `CLAUDE.md`.
 
 ```
 Vercel Cron                              Vercel Cron
-  /api/ingest    every 15 min              /api/digest    07:00 & 19:00 IST
+  /api/ingest    every 15 min              /api/digest    07:00 IST daily
   /api/screener  daily 00:45 UTC           • assemble last-24h data
        │                                     (+ upcoming macro events)
        ▼                                   • Claude API call

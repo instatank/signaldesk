@@ -8,7 +8,7 @@ Keep a notes file open — you'll collect **5 secret values** along the way
 and paste them all into Vercel in step 4.
 
 > **Status: ALL steps 1–5 are done** (Step 5 confirmed by the owner
-> 2026-07-06 — the digest arrives on Telegram twice daily). The app is live
+> 2026-07-06 — the digest arrives on Telegram daily). The app is live
 > at **https://signaldesk-tawny.vercel.app**, all 5 env vars are set, and
 > it's git-connected so future pushes to `claude/new-session-8uz6j0`
 > redeploy it automatically. Everything below is kept for reference
@@ -136,11 +136,11 @@ market sections. Without the header you get `401`.
 
 The owner upgraded to **Vercel Pro**, which runs cron jobs at their exact
 scheduled time with no per-project job-count limit that would block this.
-`vercel.json` schedules four cron entries, all handled natively by Vercel —
+`vercel.json` schedules three cron entries, all handled natively by Vercel —
 no external pinger needed:
 
 - `/api/ingest` — every 15 minutes
-- `/api/digest` — 01:30 UTC (07:00 IST) and 13:30 UTC (19:00 IST)
+- `/api/digest` — 01:30 UTC (07:00 IST), once daily
 - `/api/screener` — 00:45 UTC daily (rebuilds the screener page's data)
 
 (On the free Hobby plan, cron jobs only fire once per day and not at an
@@ -183,7 +183,8 @@ below (run in any terminal; on Windows use Git Bash or PowerShell's
    ```
    Within ~30 seconds your Telegram bot should message you the briefing. 🎉
 
-From tomorrow, the digest arrives automatically at 07:00 and 19:00 IST.
+From tomorrow, the digest arrives automatically at 07:00 IST each day. For
+a fresh read at any other time, use the **Flash** button on the site.
 
 ---
 

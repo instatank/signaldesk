@@ -64,12 +64,13 @@ describe('digest-inputs window is parameterized', () => {
     assert.equal(inputs.recentWindowHours, 4);
   });
 
-  test('default (scheduled) still pulls 24h and tags mode=scheduled/12h', async () => {
+  test('default (scheduled) still pulls 24h and tags mode=scheduled/24h recency', async () => {
     let cutoff = null;
     const inputs = await assembleDigestInputs(fakeDb((v) => (cutoff = v)), []);
     const hoursBack = (now - cutoff.getTime()) / 3_600_000;
     assert.ok(Math.abs(hoursBack - 24) < 0.1, `expected ~24h window, got ${hoursBack}`);
     assert.equal(inputs.mode, 'scheduled');
-    assert.equal(inputs.recentWindowHours, 12);
+    // One briefing a day: the whole 24h window is "recent" to the reader.
+    assert.equal(inputs.recentWindowHours, 24);
   });
 });

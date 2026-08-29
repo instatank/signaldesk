@@ -77,7 +77,7 @@ export default function PulseHero({
   macroEvents = [],
   now,
   label = "Today's briefing",
-  emptyText = 'No briefing yet — the first one lands after the next digest run (07:00 / 19:00 IST).',
+  emptyText = 'No briefing yet — the first one lands after the next digest run (07:00 IST).',
 }) {
   const digest = briefing?.digest;
   return (

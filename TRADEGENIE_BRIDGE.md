@@ -93,9 +93,10 @@ network call on every trade-page view. A journal is a permanent record; it
 must stay readable with the other app switched off.
 
 **Pick the slot at-or-before the trade, never after.** SignalDesk publishes
-at 07:00 and 19:00 IST. A trade entered at 06:00 IST must map to the
-*previous evening's* 19:00 briefing — not to the 07:00 briefing published
-an hour later. Mapping a trade to a briefing that did not exist yet when it
+once a day at 07:00 IST (it ran twice daily, 07:00 and 19:00, until
+2026-08-29 — those `-19` digests are still stored and still addressable via
+`?date=&slot=19`). A trade entered at 06:00 IST must map to the *previous
+day's* 07:00 briefing — not to today's, published an hour later. Mapping a trade to a briefing that did not exist yet when it
 was taken is lookahead bias: it would show the trader "knowing" things they
 could not have known, and would quietly poison every Phase B pattern. One
 comparison to get right, and it must be got right.

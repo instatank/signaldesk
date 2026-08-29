@@ -30,8 +30,7 @@ export default async function ArchivePage() {
       {!entries || entries.length === 0 ? (
         <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-8 text-center">
           <p className="text-sm text-zinc-400">
-            No briefings stored yet — the archive fills in after the next digest run (07:00 /
-            19:00 IST).
+            No briefings stored yet — the archive fills in after the next digest run (07:00 IST).
           </p>
           {error && <p className="mt-2 text-xs text-zinc-600">{error}</p>}
         </div>

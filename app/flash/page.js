@@ -119,8 +119,8 @@ function TriggerCard({ cooldown }) {
         <strong className="text-zinc-200">⚡ Flash briefing.</strong> Something just happened — a war
         headline, a hack, a sharp move? Pull fresh data and get an AI read of how the market is
         reacting <strong className="text-zinc-300">right now</strong>, weighted to the last{' '}
-        {FLASH_RECENT_HOURS} hours. The snapshot below refreshes with it; your twice-daily 12h/24h
-        briefing is unaffected.
+        {FLASH_RECENT_HOURS} hours. The snapshot below refreshes with it; your daily 24h briefing is
+        unaffected.
       </p>
       <TriggerForm cooldown={cooldown} />
     </section>

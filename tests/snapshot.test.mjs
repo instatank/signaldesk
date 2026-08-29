@@ -22,7 +22,7 @@ import {
 } from '../lib/snapshot.js';
 import { isAuthorized, isSnapshotAuthorized } from '../lib/auth.js';
 
-// IST is UTC+05:30, so 07:00 IST = 01:30 UTC and 19:00 IST = 13:30 UTC.
+// IST is UTC+05:30, so the 07:00 IST briefing publishes at 01:30 UTC.
 // Helper: build the UTC instant for an IST wall-clock time.
 function ist(dateStr, hh, mm = 0, ss = 0) {
   const [y, m, d] = dateStr.split('-').map(Number);
@@ -30,6 +30,8 @@ function ist(dateStr, hh, mm = 0, ss = 0) {
 }
 
 describe('resolveSlot — the briefing at or before the trade', () => {
+  // One briefing a day, 07:00 IST, since 2026-08-29: every instant resolves
+  // to that day's 07 slot, or to the previous day's before 07:00.
   test('a mid-morning trade maps to the same day 07:00', () => {
     const s = resolveSlot(ist('2026-08-10', 9, 14));
     assert.equal(s.date, '2026-08-10');
@@ -37,52 +39,52 @@ describe('resolveSlot — the briefing at or before the trade', () => {
     assert.equal(s.id, '2026-08-10-07');
   });
 
-  test('THE case: 06:00 IST maps BACK to the previous evening, never forward', () => {
+  test('THE case: 06:00 IST maps BACK to the previous day, never forward', () => {
     const s = resolveSlot(ist('2026-08-10', 6, 0));
-    assert.equal(s.id, '2026-08-09-19');
+    assert.equal(s.id, '2026-08-09-07');
   });
 
-  test('one second before 07:00 is still the previous evening', () => {
-    assert.equal(resolveSlot(ist('2026-08-10', 6, 59, 59)).id, '2026-08-09-19');
+  test('one second before 07:00 is still the previous day', () => {
+    assert.equal(resolveSlot(ist('2026-08-10', 6, 59, 59)).id, '2026-08-09-07');
   });
 
   test('exactly 07:00:00 belongs to the 07 slot (at-or-before includes it)', () => {
     assert.equal(resolveSlot(ist('2026-08-10', 7, 0, 0)).id, '2026-08-10-07');
   });
 
-  test('an afternoon trade still belongs to 07, not to the evening ahead of it', () => {
+  test('an afternoon trade belongs to that morning', () => {
     assert.equal(resolveSlot(ist('2026-08-10', 18, 59, 59)).id, '2026-08-10-07');
   });
 
-  test('exactly 19:00:00 belongs to the 19 slot', () => {
-    assert.equal(resolveSlot(ist('2026-08-10', 19, 0, 0)).id, '2026-08-10-19');
+  test('19:00 IST no longer mints a slot of its own — it is still that morning', () => {
+    assert.equal(resolveSlot(ist('2026-08-10', 19, 0, 0)).id, '2026-08-10-07');
   });
 
-  test('late night stays on the same day 19', () => {
-    assert.equal(resolveSlot(ist('2026-08-10', 23, 59, 59)).id, '2026-08-10-19');
+  test('late night stays on the same day 07', () => {
+    assert.equal(resolveSlot(ist('2026-08-10', 23, 59, 59)).id, '2026-08-10-07');
   });
 
-  test('IST midnight rolls back to the previous evening', () => {
-    assert.equal(resolveSlot(ist('2026-08-10', 0, 0, 0)).id, '2026-08-09-19');
+  test('IST midnight rolls back to the previous day', () => {
+    assert.equal(resolveSlot(ist('2026-08-10', 0, 0, 0)).id, '2026-08-09-07');
   });
 
   test('rolls back across a month boundary', () => {
-    assert.equal(resolveSlot(ist('2026-08-01', 3, 30)).id, '2026-07-31-19');
+    assert.equal(resolveSlot(ist('2026-08-01', 3, 30)).id, '2026-07-31-07');
   });
 
   test('rolls back across a year boundary', () => {
-    assert.equal(resolveSlot(ist('2026-01-01', 1, 15)).id, '2025-12-31-19');
+    assert.equal(resolveSlot(ist('2026-01-01', 1, 15)).id, '2025-12-31-07');
   });
 
   test('rolls back across a leap day', () => {
-    assert.equal(resolveSlot(ist('2028-03-01', 5, 0)).id, '2028-02-29-19');
+    assert.equal(resolveSlot(ist('2028-03-01', 5, 0)).id, '2028-02-29-07');
   });
 
   test('slotAt is the real UTC instant of the briefing', () => {
     // 07:00 IST = 01:30 UTC.
     assert.equal(resolveSlot(ist('2026-08-10', 9, 0)).slotAt.toISOString(), '2026-08-10T01:30:00.000Z');
-    // 19:00 IST = 13:30 UTC.
-    assert.equal(resolveSlot(ist('2026-08-10', 20, 0)).slotAt.toISOString(), '2026-08-10T13:30:00.000Z');
+    // An evening trade is bounded at that same morning's publication.
+    assert.equal(resolveSlot(ist('2026-08-10', 20, 0)).slotAt.toISOString(), '2026-08-10T01:30:00.000Z');
   });
 
   test('slotAt is never after the instant it was resolved from', () => {
@@ -96,7 +98,7 @@ describe('resolveSlot — the briefing at or before the trade', () => {
   });
 
   test('accepts an ISO string as well as a Date', () => {
-    assert.equal(resolveSlot('2026-08-10T01:29:00.000Z').id, '2026-08-09-19');
+    assert.equal(resolveSlot('2026-08-10T01:29:00.000Z').id, '2026-08-09-07');
     assert.equal(resolveSlot('2026-08-10T01:30:00.000Z').id, '2026-08-10-07');
   });
 
@@ -107,12 +109,16 @@ describe('resolveSlot — the briefing at or before the trade', () => {
 });
 
 describe('previousSlot — walks backwards only', () => {
-  test('19 steps back to the same day 07; 07 steps back to the previous 19', () => {
-    const evening = resolveSlot(ist('2026-08-10', 20, 0));
-    assert.equal(evening.id, '2026-08-10-19');
-    const morning = previousSlot(evening);
-    assert.equal(morning.id, '2026-08-10-07');
-    assert.equal(previousSlot(morning).id, '2026-08-09-19');
+  test('a slot steps back one day', () => {
+    const today = resolveSlot(ist('2026-08-10', 20, 0));
+    assert.equal(today.id, '2026-08-10-07');
+    assert.equal(previousSlot(today).id, '2026-08-09-07');
+  });
+
+  test('an archived evening slot steps back to that same morning', () => {
+    // The retired 19:00 run is still addressable by id, and stepping back
+    // from it must not skip the 07 briefing that preceded it.
+    assert.equal(previousSlot(slotFromParts('2026-08-10', '19')).id, '2026-08-10-07');
   });
 
   test('each step is strictly earlier', () => {
@@ -127,6 +133,14 @@ describe('previousSlot — walks backwards only', () => {
 
 describe('slotFromParts — explicit date+slot', () => {
   test('round-trips a resolved slot', () => {
+    const s = slotFromParts('2026-08-10', '07');
+    assert.equal(s.id, '2026-08-10-07');
+    assert.equal(s.slotAt.toISOString(), '2026-08-10T01:30:00.000Z');
+  });
+
+  test('still addresses an archived 19:00 briefing at its own instant', () => {
+    // Digests from before 2026-08-29 carry "-19" ids; a backfill must be
+    // able to ask for one without it being normalized onto 07.
     const s = slotFromParts('2026-08-10', '19');
     assert.equal(s.id, '2026-08-10-19');
     assert.equal(s.slotAt.toISOString(), '2026-08-10T13:30:00.000Z');
@@ -357,21 +371,21 @@ describe('getSnapshot — reads bounded at or before the slot', () => {
   });
 
   test('falls back to an EARLIER slot when that run failed, and says which', async () => {
-    const db = fakeDb({ digests: { '2026-08-09-19': { digest: { narrative: { headline: 'Last night' } } } } });
+    const db = fakeDb({ digests: { '2026-08-09-07': { digest: { narrative: { headline: 'Yesterday' } } } } });
     const snap = await getSnapshot(db, { slot, assets });
-    assert.equal(snap.briefingHeadline, 'Last night');
-    assert.equal(snap.briefingSlot, '2026-08-09-19');
+    assert.equal(snap.briefingHeadline, 'Yesterday');
+    assert.equal(snap.briefingSlot, '2026-08-09-07');
   });
 
   test('never falls FORWARD to a later slot', async () => {
-    const db = fakeDb({ digests: { '2026-08-10-19': { digest: { narrative: { headline: 'Tonight' } } } } });
+    const db = fakeDb({ digests: { '2026-08-11-07': { digest: { narrative: { headline: 'Tomorrow' } } } } });
     const snap = await getSnapshot(db, { slot, assets });
     assert.equal(snap.briefingHeadline, null);
     assert.equal(snap.briefingSlot, null);
   });
 
   test('gives up rather than reaching back further than two days', async () => {
-    const db = fakeDb({ digests: { '2026-08-07-19': { digest: { narrative: { headline: 'Stale' } } } } });
+    const db = fakeDb({ digests: { '2026-08-07-07': { digest: { narrative: { headline: 'Stale' } } } } });
     const snap = await getSnapshot(db, { slot, assets });
     assert.equal(snap.briefingHeadline, null);
   });

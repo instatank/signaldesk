@@ -13,7 +13,7 @@ session reads.
 A crypto market intelligence tool for a non-technical solo founder (the
 owner, AA). Three data streams (news RSS, funding/OI, Fear & Greed) plus
 prices, ingested every 15 min, synthesized into an AI-written briefing
-pushed to Telegram twice daily (07:00 and 19:00 IST). See
+pushed to Telegram once a day (07:00 IST). See
 `SIGNALDESK_PRD.md` for the full why/what; this file is about where the
 build currently stands.
 
@@ -33,23 +33,23 @@ build currently stands.
   `ANTHROPIC_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`,
   `CRON_SECRET`, `FIREBASE_SERVICE_ACCOUNT`.
 - Cron jobs are wired in `vercel.json` (`/api/ingest` every 15 min,
-  `/api/digest` at 01:30 UTC = 07:00 IST and 13:30 UTC = 19:00 IST,
-  `/api/screener` at 00:45 UTC daily) and
+  `/api/digest` at 01:30 UTC = 07:00 IST, `/api/screener` at 00:45 UTC
+  daily) and
   run automatically since this is a Production deployment — Vercel Cron
   only fires on Production, not Preview. **The owner is on the Vercel Pro
   plan** (upgraded to get exact cron timing and more than 2 jobs/project
   — Hobby caps both), so all scheduling lives in `vercel.json` directly;
   no external pinger (e.g. cron-job.org) is needed anymore.
 - Each digest run is stored in Firestore's `digests` collection under a
-  per-run doc id (`istSlotId()` in `lib/digest.js`, e.g. `2026-07-03-07`
-  and `2026-07-03-19`) rather than one per day, since digest now runs
-  twice daily — don't revert this to a per-day key or the evening run
-  will overwrite the morning one.
-- `assembleDigestInputs()` still looks back a full 24h for data
-  continuity, but tags each headline `recent: true` (last 12h) or `false`
-  (12-24h old); the Claude system prompt in `lib/claude.js` is told to
-  lead `top_stories` with `recent` headlines so the two daily briefings
-  don't just repeat each other.
+  per-run doc id (`istSlotId()` in `lib/digest.js`, e.g. `2026-07-03-07`)
+  rather than one per day. The schedule is once daily now, so in practice
+  that is always `-07`, but keep the run-keyed id: a manual re-run must not
+  overwrite the morning's briefing, and the archive still holds the `-19`
+  docs from the twice-daily era.
+- `assembleDigestInputs()` looks back a full 24h and, since the schedule
+  went to one run a day, tags the WHOLE window `recent: true`
+  (`recentHours` defaults to 24). The flag still earns its keep on the
+  flash path, where it marks the last 4h.
 
 **⚠️ Stray resource:** there's a second, empty Vercel project
 `signaldesk-2rsg` (`prj_BamVnIbRrjjAACi76ABlgc1c2LML`) from a duplicate
@@ -60,7 +60,7 @@ referenced anywhere.
 ## What's NOT done yet
 
 **SETUP.md Step 5 is DONE** (confirmed by owner 2026-07-06): the digest
-arrives on Telegram twice daily and the owner is consuming it. The
+arrives on Telegram daily and the owner is consuming it. The
 troubleshooting notes in SETUP.md remain relevant for future breakage.
 
 **Phase 2 (dashboard) SHIPPED 2026-07-06** — the owner waived the 2-week
@@ -154,8 +154,9 @@ now — `/` (unchanged 10-second read), `/advance`, `/archive` — linked via
 real-time read from the UI when a major event hits — e.g. a war/hack — to
 gauge how the market is reacting *now*). Key decision: recency is a **dial
 on the existing pipeline, not a second system.** `assembleDigestInputs()`
-took `windowHours`/`recentHours`/`mode` opts (defaults `24`/`12`/
-`'scheduled'` reproduce the twice-daily digest byte-for-byte). A flash run
+took `windowHours`/`recentHours`/`mode` opts (the defaults reproduce the
+scheduled digest byte-for-byte — `24`/`24`/`'scheduled'` since 2026-08-29,
+`24`/`12` before that). A flash run
 passes `{windowHours:12, recentHours:4, mode:'flash'}`; `lib/claude.js`
 appends a "flash addendum" to the system prompt only when
 `inputs.mode==='flash'`, re-framing the *same* briefing as a present-tense,
@@ -498,8 +499,8 @@ staples it onto the trade forever.
   that can trigger digests. Unset = the bridge is simply off.
 - **`lib/snapshot.js` owns the one comparison that matters.** `resolveSlot()`
   returns the briefing slot AT OR BEFORE an instant — a 06:00 IST trade maps
-  to the *previous* evening's 19:00, never forward to the 07:00 published an
-  hour later. Mapping a trade to a briefing that did not exist yet is
+  to the *previous day's* 07:00, never forward to today's, published an hour
+  later. Mapping a trade to a briefing that did not exist yet is
   lookahead bias. Every read is bounded at or before the slot instant, and a
   missing digest walks BACKWARDS, reporting which slot it actually used.
   Never add a "nearest slot" or "latest available" shortcut here.
@@ -556,6 +557,43 @@ Wired into `/api/ingest` **and** `leanIngest` (a flash is exactly when the
 fastest source matters most). `npm run verify:sources` now runs the real
 fetcher and reports how many items survive the filter, broken down by
 source — run it after deploy, since the sandbox 403s on everything.
+
+**One briefing a day SHIPPED 2026-08-29** (owner: at the frequency he
+actually reads it, two pushes a day is one too many — keep 07:00 IST, drop
+19:00, and pull a fresh read on demand with the Flash button when something
+happens). The 24h data window was already right and did not change; what
+changed is that the window is now published once instead of twice.
+
+- `vercel.json` lost the `30 13 * * *` digest cron. That's the whole
+  functional change — three cron entries now, still above Hobby's cap of 2,
+  so the Pro plan is still required.
+- **`recentHours` default went 12h → 24h.** The 12h split existed so the
+  evening run wouldn't re-tell the morning's stories; with one run a day
+  every story in the window is new to the reader, and leaving half of them
+  flagged as "background context only" would have quietly demoted a full
+  afternoon of news. The `recent` flag itself stays — the flash path still
+  uses it for its 4h window. Knock-on: `dataQuality.recentHeadlineCount`
+  now equals `headlineCount` on scheduled runs, so the `thin` bar (< 8
+  recent) is measured over 24h rather than 12h.
+- **`lib/snapshot.js` `SLOT_HOURS` is `[7]`.** resolveSlot must name a
+  briefing that actually published: with no 19:00 run, an evening trade
+  belongs to that morning's 07:00, not to a phantom evening slot that the
+  digest walk would then have to fall back out of on every single lookup.
+  The retired hour lives on in `ADDRESSABLE_SLOT_HOURS`, which only
+  `slotFromParts()` consults, so archived `-19` digests stay addressable by
+  id (`?date=&slot=19`) for a Phase B backfill. `MAX_DIGEST_FALLBACK_SLOTS`
+  went 4 → 2 because a slot is now a day, and the comment's "2 days" was
+  the real intent.
+  **Known cost, not an oversight:** a snapshot's market section is bounded
+  at the slot instant, so a 23:00 IST trade now reads 07:00 IST metrics —
+  up to ~17h stale where it used to be ~4h. If that bites, bound the
+  metrics reads at the TRADE instant (still no lookahead, still
+  reproducible) while keeping the briefing keyed to the slot. Do NOT solve
+  it by minting slots that never published.
+- Prompt, page copy ("07:00 / 19:00 IST" → "07:00 IST"), the archive
+  reader's comment and the docs all say once-daily now. The archive's
+  morning/evening badge logic is unchanged — historical evening entries
+  still need it.
 
 ## Next up
 

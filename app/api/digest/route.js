@@ -1,5 +1,5 @@
-// Runs at 07:00 and 19:00 IST via Vercel Cron. Assembles the last 24h of
-// stored data (weighted toward the last 12h), asks Claude for the
+// Runs once daily at 07:00 IST via Vercel Cron. Assembles the last 24h of
+// stored data, asks Claude for the
 // structured briefing, stores it, and pushes it to Telegram. If the
 // Claude call fails (after one retry), a raw-data fallback message is
 // sent instead — degraded, never broken.

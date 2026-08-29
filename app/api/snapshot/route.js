@@ -17,7 +17,9 @@
 // Query params (all optional):
 //   at=<ISO instant>   the trade's entry time — the preferred form; the slot
 //                      is resolved server-side, at or before that instant
-//   date=&slot=        an explicit slot (YYYY-MM-DD + "07"|"19")
+//   date=&slot=        an explicit slot (YYYY-MM-DD + "07"; "19" is also
+//                      accepted, for briefings archived from the retired
+//                      twice-daily schedule)
 //   instrument=        the traded symbol, for the per-coin section
 // With none of them, it serves the slot currently in effect.
 import { NextResponse } from 'next/server';
