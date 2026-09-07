@@ -196,7 +196,8 @@ pure Binance-futures data + arithmetic. What landed:
 - **Table sorting is zero-JS** — a hidden radio group + a generated
   `:checked ~` stylesheet that sets each row's CSS `order` per sort key
   (same trick as the news filter). Rows are a flex column so `order` reflows
-  them. Live prices carry a small green dot.
+  them. Live prices carry a small green dot. See the sortable-headers entry
+  below for the current shape.
 - Per-coin detail `/screener/[coin]`: strength headline, return ladder, five
   templated plain-language reads (NOT AI — interpret.js-style), and three
   static SVG charts (rel-perf vs the average coin, daily funding bars, OI
@@ -217,6 +218,36 @@ pure Binance-futures data + arithmetic. What landed:
   `screener` (incl. a `names` map for pretty coin names); region stays `sin1`
   so Binance is reachable. Sandbox can't hit Binance, so live data only
   appears after deploy (hit Refresh, or wait for the cron).
+
+**Every screener column sortable SHIPPED 2026-09-07** (owner: clicking any
+header in the ALL COINS table should sort by it). The sort model moved to
+**`lib/screener-sort.js`** — `SORT_COLS` is now the single source for the
+grid track, the header cells and the sort keys, so those three can't drift;
+`app/components/ScreenerTable.js` only renders. Still zero client JS.
+
+- **Fixed a latent bug:** the old `#sk-x:checked~.thead` selectors never
+  matched — `~` is the sibling combinator and the radios sat two levels above
+  `.thead`/`.stbl`. Sorting had never actually worked in production. The
+  radios now live inside the min-width track, as real siblings. If you move
+  that markup, keep them siblings.
+- **All 12 columns sort, and each reverses.** A column's `primary` direction
+  is the reading worth seeing first (rank and coin ascending, everything else
+  descending); clicking the active header again flips it. The toggle is CSS,
+  not JS: each header holds **two stacked labels** pointing at the two
+  direction radios, and the stylesheet displays exactly one — the one that
+  changes the state. The arrow shows the direction currently APPLIED, not the
+  one on offer.
+- Categorical columns sort by an explicit rank (`TREND_RANK`, `VSBTC_RANK`,
+  `NOTE_RANK`), best-first when descending — this codebase ranks, it doesn't
+  score. **Missing values sort LAST in BOTH directions**: a coin with no
+  60-day history must not lead the ascending column.
+- **Order numbers ride on inline CSS custom properties** (`--d-r30d`,
+  `--a-r30d`, … per row), so the stylesheet is 2 rules per column instead of
+  the 720 selectors a rule-per-(column, direction, row) would need. Keep that
+  shape if you add columns.
+- Ordering is tested offline in `tests/screener.test.mjs`; the browser half
+  (radios, header swap, click-to-reverse, both themes) was verified in
+  headless Chromium — 147 checks.
 
 **Daylight mode SHIPPED 2026-07-09** (owner wanted to flip between a light
 and dark screen — "light sometimes, dark sometimes"). Key decision:
@@ -637,6 +668,7 @@ rationale, condensed here)
 | `app/api/screener/refresh/route.js` | Public cooldown-gated REFRESH → rebuild screener now |
 | `lib/screener.js` | Screener: fetchers (batched) + all pure math + insights/summary + reader |
 | `lib/screener-live.js` | 15-min live-price overlay refresh (piggybacks on `/api/ingest`) |
+| `lib/screener-sort.js` | Screener table sort model: columns, grid track, per-row CSS `order`, generated stylesheet |
 | `app/screener/page.js` + `[coin]/page.js` | Screener list (cards + zero-JS sort table) + per-coin detail |
 | `lib/tree-news.js` | Tree News JSON source: parser, follow-list social gate, publisher mapping |
 | `lib/derivatives.js` | Binance→OKX funding/OI adapter with silent failover |

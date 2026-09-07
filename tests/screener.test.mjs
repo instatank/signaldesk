@@ -4,6 +4,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
+import { SORT_COLS, GRID, buildOrderVars, buildSortCss } from '../lib/screener-sort.js';
 import {
   pctChange,
   sma,
@@ -165,3 +166,79 @@ describe('screener interpretation labels', () => {
 function round(v) {
   return Math.round(v * 10) / 10;
 }
+
+// --- Table sorting -----------------------------------------------------
+// The table sorts with CSS `order` alone, so what we assert is the ORDER
+// NUMBERS the shaper emits per row per (column, direction). The browser side
+// (radios, header state, the click-to-reverse swap) is verified in Chromium.
+
+function orderOf(vars, key) {
+  // rows listed in the sequence the given var puts them in
+  return vars.map((v, i) => [i, Number(v[key])]).sort((a, b) => a[1] - b[1]).map(([i]) => i);
+}
+
+describe('screener table sorting', () => {
+  const rows = [
+    { symbol: 'AUSDT', base: 'ETH', sizeRank: 1, price: 3000, r24h: 2, r60d: 5, trend: { label: 'cooling' }, vsBtc: 'behind BTC', worthNoting: null, relSpark: [0, -1], detail: { annualFunding: 4 } },
+    { symbol: 'BUSDT', base: 'BTC', sizeRank: 2, price: 60000, r24h: -3, r60d: null, trend: { label: 'uptrend' }, vsBtc: null, worthNoting: 'crowded', relSpark: [0, 7], detail: { annualFunding: 40 } },
+    { symbol: 'CUSDT', base: 'SOL', sizeRank: 3, price: 150, r24h: 9, r60d: -2, trend: { label: 'downtrend' }, vsBtc: 'ahead of BTC', worthNoting: 'big move', relSpark: [0, 3], detail: { annualFunding: null } },
+  ];
+  const vars = buildOrderVars(rows);
+
+  test('every column emits both directions for every row', () => {
+    for (const col of SORT_COLS) {
+      for (const v of vars) {
+        assert.equal(typeof v[`--d-${col.id}`], 'string', `--d-${col.id}`);
+        assert.equal(typeof v[`--a-${col.id}`], 'string', `--a-${col.id}`);
+      }
+    }
+  });
+
+  test('numeric columns sort high-to-low descending and reverse ascending', () => {
+    assert.deepEqual(orderOf(vars, '--d-r24h'), [2, 0, 1]);
+    assert.deepEqual(orderOf(vars, '--a-r24h'), [1, 0, 2]);
+    assert.deepEqual(orderOf(vars, '--d-price'), [1, 0, 2]);
+    assert.deepEqual(orderOf(vars, '--a-price'), [2, 0, 1]);
+  });
+
+  test('the coin column sorts alphabetically', () => {
+    assert.deepEqual(orderOf(vars, '--a-coin'), [1, 0, 2]); // BTC, ETH, SOL
+    assert.deepEqual(orderOf(vars, '--d-coin'), [2, 0, 1]);
+  });
+
+  test('categorical columns sort by their rank, best first descending', () => {
+    assert.deepEqual(orderOf(vars, '--d-trend'), [1, 0, 2]); // uptrend, cooling, downtrend
+    assert.deepEqual(orderOf(vars, '--d-note'), [2, 1, 0]); // big move, crowded, none
+  });
+
+  test('missing values sort LAST in BOTH directions', () => {
+    // r60d: ETH 5, SOL -2, BTC null
+    assert.deepEqual(orderOf(vars, '--d-r60d'), [0, 2, 1]);
+    assert.deepEqual(orderOf(vars, '--a-r60d'), [2, 0, 1]);
+    // vsBtc is null for BTC itself; funding is null for SOL
+    assert.equal(vars[1]['--d-vsbtc'], vars[1]['--a-vsbtc']);
+    assert.equal(Number(vars[1]['--a-vsbtc']), 2);
+    assert.equal(Number(vars[2]['--a-cost']), 2);
+  });
+
+  test('every row gets a distinct slot, so no two rows collide', () => {
+    for (const col of SORT_COLS) {
+      for (const d of ['d', 'a']) {
+        const slots = vars.map((v) => v[`--${d}-${col.id}`]);
+        assert.equal(new Set(slots).size, rows.length, `--${d}-${col.id}`);
+      }
+    }
+  });
+
+  test('the stylesheet wires both directions of every column', () => {
+    const css = buildSortCss();
+    for (const col of SORT_COLS) {
+      assert.match(css, new RegExp(`#sk-${col.id}-d:checked~\\.stbl>\\.srow\\{order:var\\(--d-${col.id}\\)\\}`));
+      assert.match(css, new RegExp(`#sk-${col.id}-a:checked~\\.stbl>\\.srow\\{order:var\\(--a-${col.id}\\)\\}`));
+    }
+  });
+
+  test('the grid track has one column per sort key', () => {
+    assert.equal(GRID.split(' ').length, SORT_COLS.length);
+  });
+});
