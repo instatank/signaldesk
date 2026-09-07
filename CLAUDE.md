@@ -26,9 +26,11 @@ build currently stands.
 - Deployed: **https://signaldesk-tawny.vercel.app** — Vercel project
   `signaldesk` (`prj_KyENx9ytovswy3g9ZhIq93FGVOXH`), team
   `ankitanand25-4465's projects` (`team_P4uKN28r7smT5lPcH5jm0Jac`), connected
-  to GitHub (`instatank/signaldesk`), last deploy `dpl_81gNJLpLkubwcqp2cnuqfyqRucp2`
-  built from commit `479b375` (daylight mode), state `READY`, target
-  `production` (verified via Vercel MCP 2026-07-17).
+  to GitHub (`instatank/signaldesk`), last deploy `dpl_3vftzmyFt1dGYhEdWjqFyi2yp83U`
+  built from commit `f3b111e` (sortable screener headers), state `READY`,
+  target `production`, region `sin1` (verified via Vercel MCP 2026-09-07).
+  A push to `claude/new-session-8uz6j0` IS the deploy — Vercel builds it
+  automatically; nothing else is needed from the container.
 - All 5 env vars are set in Vercel (owner did this manually):
   `ANTHROPIC_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`,
   `CRON_SECRET`, `FIREBASE_SERVICE_ACCOUNT`.
